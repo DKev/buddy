@@ -18,6 +18,7 @@
 - [x] `bin` entry in package.json for npx support
 
 ## Accomplishments
+- **Real-time Presence Logic (P1-3):** Completed and verified the logic for dynamic activity messages based on mood and time since last active. Updated `getStatusCard` and `buddy_status` tool to reflect these changes. P1-3 is now officially closed. [Update 2026-04-09: Refined presence prefixes (Active/Recent/Idle/Away) for better real-time feel].
 - **Claude Code Optimization (PR #8):** Renamed the package to `@fiorastudio/buddy`, updated the identity in the code and logs, and optimized the README for Claude Code users with a Quick Start guide and explicit "Bring your Nuzzlecap home" messaging. Verified a clean alpha build.
 - **README Overhaul (The Rescue Mission):** Reframed the project as the rescue mission for the abandoned Claude Code `/buddy`. Added high-impact SEO, community empathy, and a detailed feature grid. Submitted as PR #7.
 - **Scaffolding:** Initialized TypeScript project with MCP SDK and `better-sqlite3`.
