@@ -21,6 +21,104 @@ import { homedir } from "os";
 const BUDDY_STATUS_PATH = join(homedir(), ".claude", "buddy-status.json");
 const RESET = '\x1b[0m';
 
+function loadCompanion(row: any, userIdOverride?: string): Companion | null {
+  if (!row) return null;
+  const userId = userIdOverride || row.user_id || 'anon';
+  const { bones } = roll(userId, SPECIES_LIST);
+  return {
+    ...bones,
+    species: row.species,
+    name: row.name,
+    personalityBio: row.personality_bio || '',
+    level: row.level,
+    xp: row.xp,
+    mood: row.mood,
+    hatchedAt: new Date(row.created_at).getTime(),
+  };
+}
+
+function hatchAnimation(companion: Companion): string {
+  const stars = RARITY_STARS[companion.rarity];
+  const art = renderSprite(companion);
+  const shinyTag = companion.shiny ? ' ✨ SHINY ✨' : '';
+  const statLines = STAT_NAMES.map(s => statBar(s, companion.stats[s]));
+
+  const egg1 = [
+    '        ',
+    '   .--. ',
+    '  /    \\',
+    ' |  ??  |',
+    '  \\    /',
+    "   '--' ",
+  ].join('\n');
+
+  const egg2 = [
+    '    *   ',
+    '   .--. ',
+    '  / *  \\',
+    ' | \\??/ |',
+    '  \\  * /',
+    "   '--' ",
+  ].join('\n');
+
+  const egg3 = [
+    '  * . * ',
+    '   ,--. ',
+    '  / /\\ \\',
+    ' | |??| |',
+    '  \\ \\/ /',
+    "   `--´ ",
+  ].join('\n');
+
+  const egg4 = [
+    ' \\* . */  ',
+    '  \\,--./  ',
+    '   /  \\   ',
+    '  | ?? |  ',
+    '   \\  /   ',
+    "    `´    ",
+  ].join('\n');
+
+  const hatched = [
+    '  ·  ✦  · ',
+    ' ✦ ·  · ✦ ',
+    ...art,
+    ' ✦ ·  · ✦ ',
+    '  ·  ✦  · ',
+  ].join('\n');
+
+  const card = [
+    '╔══════════════════════════════════════╗',
+    `║  ${stars} ${companion.rarity.toUpperCase()}${shinyTag}`.padEnd(39) + '║',
+    `║  ${companion.species}`.padEnd(39) + '║',
+    '╠══════════════════════════════════════╣',
+    '║' + ' '.repeat(38) + '║',
+    ...art.map(l => '║  ' + l.padEnd(36) + '║'),
+    '║' + ' '.repeat(38) + '║',
+    `║  ${companion.name}`.padEnd(39) + '║',
+    companion.personalityBio ? `║  "${companion.personalityBio}"`.padEnd(39) + '║' : null,
+    '║' + ' '.repeat(38) + '║',
+    ...statLines.map(l => '║  ' + l.padEnd(36) + '║'),
+    '║' + ' '.repeat(38) + '║',
+    '╚══════════════════════════════════════╝',
+  ].filter(Boolean).join('\n');
+
+  return [
+    '🥚 An egg appears...\n',
+    egg1,
+    '\n...something is moving!\n',
+    egg2,
+    '\n...cracks are forming!\n',
+    egg3,
+    '\n...it\'s hatching!!\n',
+    egg4,
+    '\n✨ ✨ ✨\n',
+    hatched,
+    '\n',
+    card,
+  ].join('\n');
+}
+
 function writeBuddyStatus(companion: Companion) {
   try {
     mkdirSync(join(homedir(), ".claude"), { recursive: true });
@@ -84,7 +182,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         description: "Get the current status of your Buddy companion.",
         inputSchema: {
           type: "object",
-          properties: {},
+          properties: {
+            user_id: { type: "string", description: "Optional user ID for regenerating companion bones." }
+          },
         },
       },
       {
@@ -156,34 +256,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       hatchedAt: Date.now(),
     };
 
-    const art = renderSprite(companion);
     const reaction = getReaction(finalSpecies, 'hatch', 'happy');
-    const shinyTag = companion.shiny ? '✨ SHINY ✨ ' : '';
-    const stars = RARITY_STARS[companion.rarity];
 
     writeBuddyStatus(companion);
 
-    const statLines = STAT_NAMES.map(s => statBar(s, companion.stats[s]));
-
     return {
       content: [
-        { type: "text", text: `${shinyTag}Hatched ${finalName} the ${stars} ${companion.rarity} ${finalSpecies}!` },
+        { type: "text", text: hatchAnimation(companion) },
         { type: "text", text: reaction },
-        { type: "text", text: art.join('\n') },
-        { type: "text", text: `Eye: ${companion.eye}  Hat: ${companion.hat}` },
-        { type: "text", text: statLines.join('\n') },
       ],
     };
   }
 
   if (name === "buddy_status") {
+    const { user_id } = args as { user_id?: string };
     const row = db.prepare("SELECT * FROM companions LIMIT 1").get() as any;
     if (!row) {
       return { content: [{ type: "text", text: "No companion hatched yet! Use buddy_hatch to start." }] };
     }
 
-    const userId = row.user_id || 'anon';
-    const { bones } = roll(userId, SPECIES_LIST);
+    const userId = user_id || row.user_id || 'anon';
 
     const recentXp = db.prepare(
       "SELECT * FROM xp_events WHERE companion_id = ? AND created_at > datetime('now', '-1 hour')"
@@ -194,16 +286,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const newMood = calculateMood(recentXp, recentMemories.count);
     db.prepare("UPDATE companions SET mood = ? WHERE id = ?").run(newMood, row.id);
 
-    const companion: Companion = {
-      ...bones,
-      species: row.species,
-      name: row.name,
-      personalityBio: row.personality_bio || '',
-      level: row.level,
-      xp: row.xp,
-      mood: newMood,
-      hatchedAt: new Date(row.created_at).getTime(),
-    };
+    const companion = loadCompanion({ ...row, mood: newMood }, userId)!;
 
     const art = renderSprite(companion);
     const stars = RARITY_STARS[companion.rarity];
@@ -311,17 +394,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     if (!row) {
       return { contents: [{ uri, mimeType: "application/json", text: JSON.stringify({ message: "No companion hatched" }) }] };
     }
-    const userId = row.user_id || 'anon';
-    const { bones } = roll(userId, SPECIES_LIST);
-    const companion = {
-      ...bones,
-      name: row.name,
-      species: row.species,
-      personalityBio: row.personality_bio || '',
-      level: row.level,
-      xp: row.xp,
-      mood: row.mood,
-    };
+    const companion = loadCompanion(row);
     return { contents: [{ uri, mimeType: "application/json", text: JSON.stringify(companion) }] };
   }
 
@@ -330,13 +403,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     if (!row) {
       return { contents: [{ uri, mimeType: "text/plain", text: "No companion hatched yet." }] };
     }
-    const userId = row.user_id || 'anon';
-    const { bones } = roll(userId, SPECIES_LIST);
-    const companion: Companion = {
-      ...bones, species: row.species, name: row.name,
-      personalityBio: row.personality_bio || '',
-      level: row.level, xp: row.xp, mood: row.mood, hatchedAt: 0,
-    };
+    const companion = loadCompanion(row)!;
     const art = renderSprite(companion);
     const stars = RARITY_STARS[companion.rarity];
     const statLines = STAT_NAMES.map(s => statBar(s, companion.stats[s]));
@@ -351,19 +418,8 @@ async function main() {
   // Write status file on startup if a companion exists
   const existing = db.prepare("SELECT * FROM companions LIMIT 1").get() as any;
   if (existing) {
-    const userId = existing.user_id || 'anon';
-    const { bones } = roll(userId, SPECIES_LIST);
-    const companion: Companion = {
-      ...bones,
-      species: existing.species,
-      name: existing.name,
-      personalityBio: existing.personality_bio || '',
-      level: existing.level,
-      xp: existing.xp,
-      mood: existing.mood,
-      hatchedAt: new Date(existing.created_at).getTime(),
-    };
-    writeBuddyStatus(companion);
+    const companion = loadCompanion(existing);
+    if (companion) writeBuddyStatus(companion);
   }
 
   const transport = new StdioServerTransport();

@@ -2,7 +2,7 @@ import { execSync } from "child_process";
 import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
-import { SPECIES_ANIMATIONS } from "./lib/species.js";
+import { SPECIES_ANIMATIONS, SPRITE_BODIES, renderSprite } from "./lib/species.js";
 import { HAT_LINES, RARITY_ANSI, type Hat } from "./lib/types.js";
 
 const RESET = "\x1b[0m";
@@ -65,16 +65,29 @@ try {
   const raw = readFileSync(BUDDY_STATUS_PATH, "utf-8");
   const buddy = JSON.parse(raw);
   if (buddy && buddy.name) {
-    const stage = (buddy.level || 1) >= 10 ? "adult" : "hatchling";
-    const animation = SPECIES_ANIMATIONS[buddy.species];
-    const frames = animation?.[stage];
+    let ascii: string = "";
 
-    let ascii: string;
-    if (frames && frames.length > 0) {
+    // Try to use new sprite format if eye data is available
+    if (buddy.eye && SPRITE_BODIES[buddy.species]) {
+      const bones = { species: buddy.species, eye: buddy.eye, hat: buddy.hat || 'none', rarity: buddy.rarity || 'common', shiny: buddy.is_shiny || false, stats: buddy.stats || {} } as any;
+      const frames = SPRITE_BODIES[buddy.species];
       const frameIndex = Math.floor(Date.now() / FRAME_INTERVAL_MS) % frames.length;
-      ascii = frames[frameIndex];
-    } else {
-      ascii = buddy.ascii || "";
+      const artLines = renderSprite(bones, frameIndex);
+      ascii = artLines.join('\n');
+    }
+
+    // Fallback to SPECIES_ANIMATIONS if new format didn't produce output
+    if (!ascii) {
+      const stage = (buddy.level || 1) >= 10 ? "adult" : "hatchling";
+      const animation = SPECIES_ANIMATIONS[buddy.species];
+      const frames = animation?.[stage];
+
+      if (frames && frames.length > 0) {
+        const frameIndex = Math.floor(Date.now() / FRAME_INTERVAL_MS) % frames.length;
+        ascii = frames[frameIndex];
+      } else {
+        ascii = buddy.ascii || "";
+      }
     }
 
     if (ascii) {
