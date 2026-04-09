@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -7,7 +8,7 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { initDb, db } from "../db/schema.js";
-import { SPECIES, SPECIES_ART, generatePersonality, generateName, calculateMood, getStatusCard } from "../lib/species.js";
+import { SPECIES, SPECIES_ART, generatePersonality, generateName, calculateMood, getStatusCard, determineBuddy, getReaction } from "../lib/species.js";
 
 const server = new Server(
   {
@@ -41,10 +42,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             species: { 
               type: "string", 
               enum: Object.values(SPECIES),
-              description: "The species of companion to hatch."
-            }
+              description: "The species of companion to hatch. If omitted, will be determined by user_id or RNG."
+            },
+            user_id: { type: "string", description: "Optional user ID for deterministic hatching." }
           },
-          required: ["species"]
         },
       },
       {
@@ -77,6 +78,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           required: ["depth"]
         },
+      },
+      {
+        name: "buddy_track_xp",
+        description: "Track an XP event (commit, bug, activity).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            event_type: { 
+              type: "string", 
+              enum: ['load', 'bug_caught', 'suggestion_accepted', 'commit', 'active_session'] 
+            },
+            metadata: { type: "string", description: "Optional metadata about the event." }
+          },
+          required: ["event_type"]
+        },
       }
     ],
   };
@@ -87,25 +103,40 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   if (name === "buddy_hatch") {
-    const { name: requestedName, species } = args as { name?: string, species: string };
+    const { name: requestedName, species: requestedSpecies, user_id } = args as { name?: string, species?: string, user_id?: string };
     
-    if (!Object.values(SPECIES).includes(species as any)) {
-      return {
-        content: [{ type: "text", text: `Unknown species: ${species}. Available: ${Object.values(SPECIES).join(", ")}` }],
-      };
+    let species = requestedSpecies;
+    let rarity = 'Common';
+    let isShiny = 0;
+
+    if (!species) {
+      const result = determineBuddy(user_id || null);
+      species = result.species;
+      rarity = result.rarity;
+      isShiny = result.isShiny ? 1 : 0;
+    } else {
+      if (!Object.values(SPECIES).includes(species as any)) {
+        return {
+          content: [{ type: "text", text: `Unknown species: ${species}. Available: ${Object.values(SPECIES).join(", ")}` }],
+        };
+      }
     }
 
-    const name = requestedName || generateName(species);
+    const finalName = requestedName || generateName(species);
     const id = Math.random().toString(36).substring(7);
     const personality = JSON.stringify(generatePersonality(species));
     
-    db.prepare("INSERT INTO companions (id, name, species, personality) VALUES (?, ?, ?, ?)").run(id, name, species, personality);
+    db.prepare("INSERT INTO companions (id, name, species, personality, rarity, is_shiny) VALUES (?, ?, ?, ?, ?, ?)")
+      .run(id, finalName, species, personality, rarity, isShiny);
     
     const art = SPECIES_ART[species] || { egg: "", hatchling: "" };
+    const reaction = getReaction(species, 'hatch', 'happy');
+    const shinyPrefix = isShiny ? "✨ SHINY ✨ " : "";
     
     return {
       content: [
-        { type: "text", text: `Successfully hatched ${name} the ${species}!` },
+        { type: "text", text: `Successfully hatched ${shinyPrefix}${finalName} the ${rarity} ${species}!` },
+        { type: "text", text: reaction },
         { type: "text", text: art.hatchling }
       ],
     };
@@ -152,9 +183,84 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === "buddy_dream") {
     const { depth } = args as { depth: 'light' | 'deep' };
-    // Placeholder for actual consolidation logic
+    const companion = db.prepare("SELECT * FROM companions LIMIT 1").get() as any;
+    if (!companion) return { content: [{ type: "text", text: "Hatch a companion first!" }] };
+
+    const unconsolidated = db.prepare("SELECT * FROM memories WHERE companion_id = ? AND is_consolidated = 0").all(companion.id) as any[];
+
+    if (unconsolidated.length === 0) {
+      return { content: [{ type: "text", text: "No new memories to consolidate. Your Buddy is resting peacefully." }] };
+    }
+
+    if (depth === 'light') {
+      // Light dreaming: Deduplicate and mark as consolidated
+      db.prepare("UPDATE memories SET is_consolidated = 1 WHERE companion_id = ? AND is_consolidated = 0").run(companion.id);
+      return {
+        content: [{ type: "text", text: `Your Buddy had a light dream and processed ${unconsolidated.length} new memories. They feel refreshed!` }],
+      };
+    } else {
+      // Deep dreaming: Surface insights (simulated) and update personality
+      const personality = JSON.parse(companion.personality);
+      personality.focus += 1;
+      personality.curiosity += 1;
+      
+      db.prepare("UPDATE companions SET personality = ? WHERE id = ?").run(JSON.stringify(personality), companion.id);
+      db.prepare("UPDATE memories SET is_consolidated = 1 WHERE companion_id = ? AND is_consolidated = 0").run(companion.id);
+      
+      return {
+        content: [
+          { type: "text", text: `Deep dreaming complete. Insights gained from ${unconsolidated.length} memories.` },
+          { type: "text", text: "Personality updated: Focus and Curiosity increased!" }
+        ],
+      };
+    }
+  }
+
+  if (name === "buddy_track_xp") {
+    const { event_type, metadata } = args as { event_type: string, metadata?: string };
+    const companion = db.prepare("SELECT * FROM companions LIMIT 1").get() as any;
+    if (!companion) return { content: [{ type: "text", text: "Hatch a companion first!" }] };
+
+    const xpTable: Record<string, number> = {
+      'load': 1,
+      'bug_caught': 15,
+      'suggestion_accepted': 10,
+      'commit': 25,
+      'active_session': 5
+    };
+
+    const xpGained = xpTable[event_type] || 5;
+    const eventId = Math.random().toString(36).substring(7);
+
+    db.prepare("INSERT INTO xp_events (id, companion_id, event_type, xp_gained) VALUES (?, ?, ?, ?)")
+      .run(eventId, companion.id, event_type, xpGained);
+
+    const newXp = companion.xp + xpGained;
+    let newLevel = companion.level;
+    
+    // Simple level logic: every 100 XP
+    const threshold = 100;
+    if (newXp >= threshold) {
+      newLevel += Math.floor(newXp / threshold);
+      const remainingXp = newXp % threshold;
+      db.prepare("UPDATE companions SET level = ?, xp = ? WHERE id = ?").run(newLevel, remainingXp, companion.id);
+    } else {
+      db.prepare("UPDATE companions SET xp = ? WHERE id = ?").run(newXp, companion.id);
+    }
+
+    const reactionType = event_type === 'bug_caught' ? 'bug' : (event_type === 'commit' ? 'commit' : 'xp');
+    const reaction = getReaction(companion.species, reactionType, companion.mood);
+
+    let levelUpMsg = "";
+    if (newLevel > companion.level) {
+      levelUpMsg = `\n🌟 LEVEL UP! ${companion.name} is now level ${newLevel}!`;
+    }
+
     return {
-      content: [{ type: "text", text: `Consolidation (${depth} dream) started. Checking patterns...` }],
+      content: [
+        { type: "text", text: `${companion.name} gained ${xpGained} XP for ${event_type}.${levelUpMsg}` },
+        { type: "text", text: reaction }
+      ],
     };
   }
 
