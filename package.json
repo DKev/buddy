@@ -2,7 +2,10 @@
   "name": "buddy",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/server/index.js",
+  "bin": {
+    "buddy-mcp": "dist/server/index.js"
+  },
   "type": "module",
   "scripts": {
     "build": "tsc",

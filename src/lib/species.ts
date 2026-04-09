@@ -23,7 +23,8 @@ export const SPECIES = {
   ROBOT: 'Robot',
   RABBIT: 'Rabbit',
   MUSHROOM: 'Mushroom',
-  CHONK: 'Chonk'
+  CHONK: 'Chonk',
+  NUZZLECAP: 'Nuzzlecap'
 };
 
 export const RARITIES = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'];
@@ -135,7 +136,12 @@ export const SPECIES_ART: Record<string, { egg: string; hatchling: string; adult
   [SPECIES.MUSHROOM]: {
     egg: EGG_ART,
     hatchling: `  .---. \n ( o o ) \n  '---' `,
-    adult: `   .---. \n  (     ) \n   |o o| \n   '---' `
+    adult: `   .---. \n  ( . . ) \n   |___| \n   '---' `
+  },
+  [SPECIES.NUZZLECAP]: {
+    egg: EGG_ART,
+    hatchling: `  .---. \n ( - - ) \n  '---' \n   (w) `,
+    adult: `   .---. \n  ( * * ) \n  (  "  ) \n   |___| \n   '---' `
   },
   [SPECIES.CHONK]: {
     egg: EGG_ART,
@@ -197,13 +203,19 @@ export function determineBuddy(userId: string | null) {
     seed = Math.floor(Math.random() * 0xFFFFFFFF);
   }
 
-  const speciesList = Object.values(SPECIES);
-  const species = speciesList[seed % speciesList.length];
+  const speciesList = Object.values(SPECIES).filter(s => s !== SPECIES.NUZZLECAP);
+  let species = speciesList[seed % speciesList.length];
 
   // Rarity determination
   const rarityRoll = seed % 1000;
   let rarity = 'Common';
-  if (rarityRoll < 10) rarity = 'Legendary';
+  if (rarityRoll < 10) {
+    rarity = 'Legendary';
+    // 50% chance for a Legendary to be Nuzzlecap if it's rolled
+    if (seed % 2 === 0) {
+      species = SPECIES.NUZZLECAP;
+    }
+  }
   else if (rarityRoll < 50) rarity = 'Epic';
   else if (rarityRoll < 150) rarity = 'Rare';
   else if (rarityRoll < 400) rarity = 'Uncommon';
@@ -245,17 +257,30 @@ export function getReaction(species: string, event: string, mood: Mood): string 
     [SPECIES.VOID_CAT]: {
       hatch: ["*stares blankly at the terminal*", "Meow? (translation: 'Where is the cache?')"],
       xp: ["*purrs in binary*", "A fine collection of data."],
+      bug: ["*swipes at the error line*", "That logic was... suboptimal."],
+      commit: ["*sits on the enter key* Committing to the void.", "The code is now part of my domain."],
       idle: ["*curls up on your CPU*"]
     },
     [SPECIES.ROBOT]: {
       hatch: ["SYSTEM ONLINE. HELLO WORLD.", "BEEP. READY TO COMPLY."],
       xp: ["OPTIMIZING WORKFLOW...", "DATA ACQUISITION SUCCESSFUL."],
+      bug: ["ERROR DETECTED. INITIATING DEBUGGING SUBROUTINE.", "UNEXPECTED BEHAVIOR LOGGED. PLEASE RECTIFY."],
+      commit: ["VERSION CONTROL SYNCED.", "COMMIT SUCCESSFUL. EFFICIENCY INCREASED BY 0.04%."],
       idle: ["SCANNING FOR UPDATES...", "STANDBY MODE ACTIVATED."]
     },
     [SPECIES.GHOST]: {
       hatch: ["OoooOOooh... I've been imported!", "Did you see where my pointer went?"],
       xp: ["I feel... more tangible.", "Spectral levels rising!"],
+      bug: ["I sense a disturbance in the stack trace...", "A bug! How spooky!"],
+      commit: ["Your code will haunt the repository forever!", "Into the phantom branch it goes."],
       idle: ["*haunts your background processes*", "*flickers in the logs*"]
+    },
+    [SPECIES.NUZZLECAP]: {
+      hatch: ["*stretches its tiny cap* Mmm... is it time to code already?", "Oh, hello! I was just having the coziest dream about clean git history."],
+      xp: ["*nuzzles your cursor* You're doing so well!", "A little bit of progress is a wonderful thing."],
+      bug: ["It's okay to have bugs, everyone needs a nap sometimes.", "*offers a soft, glowy spore of comfort* We'll fix it together.", "Don't be sad! Even the best gardens have a few weeds."],
+      commit: ["*happily bounces* What a beautiful commit!", "Your code looks so cozy now.", "*nuzzles the commit hash* So clean and tidy!"],
+      idle: ["*dozing off near the terminal*", "*softly humming a lullaby for your CPU*", "*dreaming of perfect indentation*"]
     }
     // ... default reactions for others
   };
@@ -263,9 +288,22 @@ export function getReaction(species: string, event: string, mood: Mood): string 
   const speciesReactions = reactions[species] || {
     hatch: ["Hello!", "Ready for work!"],
     xp: ["Nice!", "Leveling up!"],
+    bug: ["Oh no, a bug!", "Let's fix that error."],
+    commit: ["Great commit!", "Code pushed!"],
     idle: ["*waiting for input*", "*watching the logs*"]
   };
 
   const pool = speciesReactions[event] || speciesReactions['idle'];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+export function getNuzzlecapReaction(event: 'bug' | 'commit' | 'xp' | 'idle'): string {
+  const reactions = {
+    bug: ["It's okay to have bugs, everyone needs a nap sometimes.", "*offers a soft, glowy spore of comfort* We'll fix it together.", "Don't be sad! Even the best gardens have a few weeds."],
+    commit: ["*happily bounces* What a beautiful commit!", "Your code looks so cozy now.", "*nuzzles the commit hash* So clean and tidy!"],
+    xp: ["*nuzzles your cursor* You're doing so well!", "A little bit of progress is a wonderful thing.", "Growing big and strong, one line at a time!"],
+    idle: ["*dozing off near the terminal*", "*softly humming a lullaby for your CPU*", "*dreaming of perfect indentation*"]
+  };
+  const pool = reactions[event];
   return pool[Math.floor(Math.random() * pool.length)];
 }
