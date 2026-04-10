@@ -293,7 +293,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           required: ["summary"],
         },
-      }
+      },
+      {
+        name: "buddy_pet",
+        description: "Pet your buddy! Shows a heart animation and a happy reaction.",
+        inputSchema: { type: "object", properties: {} },
+      },
+      {
+        name: "buddy_mute",
+        description: "Mute your buddy. It won't chime in until unmuted.",
+        inputSchema: { type: "object", properties: {} },
+      },
+      {
+        name: "buddy_unmute",
+        description: "Unmute your buddy so it can chime in again.",
+        inputSchema: { type: "object", properties: {} },
+      },
     ],
   };
 });
@@ -461,6 +476,82 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         },
       ],
     };
+  }
+
+  if (name === "buddy_pet") {
+    const row = db.prepare("SELECT * FROM companions LIMIT 1").get() as any;
+    if (!row) {
+      return { content: [{ type: "text", text: "No companion to pet! Use buddy_hatch first." }] };
+    }
+
+    const companion = loadCompanion(row)!;
+    const art = renderSprite(companion);
+
+    const hearts = [
+      '   ♥    ♥   ',
+      '  ♥  ♥   ♥  ',
+      ' ♥   ♥  ♥   ',
+    ];
+
+    const petReactions: Record<string, string[]> = {
+      'Void Cat': ['*purrs reluctantly*', '*allows exactly 3 seconds of petting*', '*pretends not to enjoy it*'],
+      'Rust Hound': ['*tail goes into overdrive*', '*happy bark!*', '*rolls over for belly rubs*'],
+      'Data Drake': ['*rumbles contentedly*', '*tiny smoke puff of happiness*', '*nuzzles your cursor*'],
+      'Duck': ['*happy quack!*', '*flaps wings excitedly*', '*waddles in a circle*'],
+      'Goose': ['*tolerates petting with dignity*', '*honk of approval*', '*surprisingly gentle*'],
+      'Mushroom': ['*spores of contentment*', '*cap wiggles happily*', '*grows slightly*'],
+      'Robot': ['*HAPPINESS SUBROUTINE ACTIVATED*', '*beeps melodically*', '*LED eyes flash pink*'],
+      'Ghost': ['*your hand goes right through but it appreciates the gesture*', '*glows warmly*', '*floats in a happy circle*'],
+      'Rabbit': ['*thumps foot happily*', '*nuzzles your hand*', '*does a binky*'],
+    };
+
+    const reactions = petReactions[companion.species] || ['*happy wiggle*', '*appreciates the attention*', '*leans into the pet*'];
+    const reaction = reactions[Math.floor(Date.now() / 1000) % reactions.length];
+
+    // Write excited reaction to status
+    writeBuddyStatus(companion, {
+      state: 'excited',
+      text: reaction,
+      expires: Date.now() + 10_000,
+      eyeOverride: '◉',
+      indicator: '♥',
+    });
+
+    const petDisplay = [
+      ...hearts,
+      ...art,
+      '',
+      `${companion.name}: ${reaction}`,
+    ].join('\n');
+
+    return { content: [{ type: "text", text: petDisplay }] };
+  }
+
+  if (name === "buddy_mute") {
+    const row = db.prepare("SELECT * FROM companions LIMIT 1").get() as any;
+    if (!row) {
+      return { content: [{ type: "text", text: "No companion to mute! Use buddy_hatch first." }] };
+    }
+
+    db.prepare("UPDATE companions SET mood = 'muted' WHERE id = ?").run(row.id);
+
+    // Remove status file so statusline goes blank
+    try { unlinkSync(BUDDY_STATUS_PATH); } catch { /* already gone */ }
+
+    return { content: [{ type: "text", text: `${row.name} has been muted. Use buddy_unmute to bring it back.` }] };
+  }
+
+  if (name === "buddy_unmute") {
+    const row = db.prepare("SELECT * FROM companions LIMIT 1").get() as any;
+    if (!row) {
+      return { content: [{ type: "text", text: "No companion to unmute! Use buddy_hatch first." }] };
+    }
+
+    db.prepare("UPDATE companions SET mood = 'happy' WHERE id = ?").run(row.id);
+    const companion = loadCompanion(row)!;
+    writeBuddyStatus(companion);
+
+    return { content: [{ type: "text", text: `${companion.name} is back! It'll chime in as you code.` }] };
   }
 
   throw new Error(`Tool not found: ${name}`);
