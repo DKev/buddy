@@ -8,9 +8,9 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { initDb, db } from "../db/schema.js";
 import {
-  SPECIES, SPECIES_LIST, SPECIES_ART, SPECIES_ANIMATIONS,
+  SPECIES, SPECIES_LIST,
   generateName, calculateMood, getReaction,
-  renderSprite, renderFace, spriteFrameCount,
+  renderSprite,
 } from "../lib/species.js";
 import { type Companion, STAT_NAMES, RARITY_STARS, RARITY_ANSI, getPeakStat, getDumpStat } from "../lib/types.js";
 import { roll, statBar } from "../lib/rng.js";
