@@ -17,6 +17,7 @@ import { roll, statBar } from "../lib/rng.js";
 import { generateBio } from "../lib/personality.js";
 import { buildObserverPrompt } from "../lib/observer.js";
 import { XP_REWARDS, levelFromXp, levelBar, levelProgress } from "../lib/leveling.js";
+import { randomUUID } from "crypto";
 import { writeFileSync, mkdirSync, unlinkSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
@@ -46,7 +47,7 @@ function loadCompanion(row: any, userIdOverride?: string): Companion | null {
 
 function awardXp(companionId: string, eventType: string): { newXp: number; newLevel: number; leveledUp: boolean } {
   const xp = XP_REWARDS[eventType] || 1;
-  const id = Math.random().toString(36).substring(7);
+  const id = randomUUID();
   db.prepare("INSERT INTO xp_events (id, companion_id, event_type, xp_gained) VALUES (?, ?, ?, ?)").run(id, companionId, eventType, xp);
 
   // Get current total XP
@@ -345,7 +346,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       name?: string; species?: string; user_id?: string;
     };
 
-    const userId = user_id || 'anon-' + Math.random().toString(36).substring(7);
+    const userId = user_id || 'anon-' + randomUUID();
     const { bones } = roll(userId, SPECIES_LIST);
 
     const finalSpecies = requestedSpecies && SPECIES_LIST.includes(requestedSpecies as any)
@@ -353,7 +354,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       : bones.species;
 
     const finalName = requestedName || generateName(finalSpecies);
-    const id = Math.random().toString(36).substring(7);
+    const id = randomUUID();
 
     // Use finalSpecies for bio (bones.species may differ if user overrode species)
     const bio = generateBio({ ...bones, species: finalSpecies });
@@ -417,7 +418,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const companion = db.prepare("SELECT id FROM companions LIMIT 1").get() as any;
     if (!companion) return { content: [{ type: "text", text: "Hatch a companion first!" }] };
 
-    const id = Math.random().toString(36).substring(7);
+    const id = randomUUID();
     db.prepare("INSERT INTO memories (id, companion_id, content, importance, tag) VALUES (?, ?, ?, ?, ?)")
       .run(id, companion.id, content, importance, 'raw');
 
@@ -584,7 +585,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     db.prepare("UPDATE companions SET mood = 'happy' WHERE id = ?").run(row.id);
-    const companion = loadCompanion(row)!;
+    const companion = loadCompanion({ ...row, mood: 'happy' })!;
     writeBuddyStatus(companion);
 
     return { content: [{ type: "text", text: `${companion.name} is back! It'll chime in as you code.` }] };

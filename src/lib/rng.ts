@@ -76,13 +76,15 @@ export type Roll = {
   inspirationSeed: number;
 };
 
+const HATS_WITH_HAT = HATS.filter(h => h !== 'none');
+
 function rollFrom(rng: () => number, speciesList: readonly string[]): Roll {
   const rarity = rollRarity(rng);
   const bones: CompanionBones = {
     rarity,
     species: pick(rng, speciesList),
     eye: pick(rng, EYES),
-    hat: rarity === 'common' ? 'none' : pick(rng, HATS),
+    hat: rarity === 'common' ? 'none' : pick(rng, HATS_WITH_HAT),
     shiny: rng() < 0.01,
     stats: rollStats(rng, rarity),
   };

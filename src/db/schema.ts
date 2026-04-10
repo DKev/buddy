@@ -1,9 +1,11 @@
 import Database from 'better-sqlite3';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { mkdirSync } from 'fs';
+import { homedir } from 'os';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.resolve(__dirname, '../../buddy.db');
+const buddyDir = path.join(homedir(), '.buddy');
+mkdirSync(buddyDir, { recursive: true });
+const dbPath = path.join(buddyDir, 'buddy.db');
 
 export const db = new Database(dbPath);
 
