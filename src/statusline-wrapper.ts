@@ -1,5 +1,5 @@
 import { execSync } from "child_process";
-import { readFileSync, readdirSync } from "fs";
+import { readFileSync, readdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
 import { SPECIES_ANIMATIONS, SPRITE_BODIES, renderSprite } from "./lib/species.js";
@@ -28,36 +28,53 @@ try {
   stdinData = readFileSync(0, "utf-8");
 } catch { /* no stdin */ }
 
-// Run claude-hud and capture output (don't print yet)
+// Run claude-hud with caching (HUD data changes slowly, no need to re-run every render)
+const HUD_CACHE_PATH = join(homedir(), ".claude", "hud-cache.json");
+const HUD_CACHE_TTL = 10_000; // 10 seconds
+
 let hudLines: string[] = [];
 try {
-  const configDir = process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude");
-  const cacheDir = join(configDir, "plugins", "cache", "claude-hud", "claude-hud");
-
-  let pluginDir = "";
+  // Try cache first
+  let cacheHit = false;
   try {
-    const versions = readdirSync(cacheDir).sort((a, b) => {
-      const pa = a.split(".").map(Number);
-      const pb = b.split(".").map(Number);
-      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-        if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0);
-      }
-      return 0;
-    });
-    if (versions.length > 0) {
-      pluginDir = join(cacheDir, versions[versions.length - 1]);
+    const cache = JSON.parse(readFileSync(HUD_CACHE_PATH, "utf-8"));
+    if (Date.now() - cache.ts < HUD_CACHE_TTL && cache.lines) {
+      hudLines = cache.lines;
+      cacheHit = true;
     }
-  } catch { /* no claude-hud installed */ }
+  } catch { /* no cache or stale */ }
 
-  if (pluginDir) {
-    const bunPath = process.env.BUN_PATH || 'bun';
-    const entryPoint = toUnix(join(pluginDir, "src", "index.ts"));
-    const result = execSync(
-      `"${bunPath}" --env-file /dev/null "${entryPoint}"`,
-      { input: stdinData, timeout: 5000, encoding: "utf-8", shell: "bash", stdio: ["pipe", "pipe", "pipe"] }
-    );
-    if (result) {
-      hudLines = result.trimEnd().split("\n");
+  if (!cacheHit) {
+    const configDir = process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude");
+    const cacheDir = join(configDir, "plugins", "cache", "claude-hud", "claude-hud");
+
+    let pluginDir = "";
+    try {
+      const versions = readdirSync(cacheDir).sort((a, b) => {
+        const pa = a.split(".").map(Number);
+        const pb = b.split(".").map(Number);
+        for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+          if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0);
+        }
+        return 0;
+      });
+      if (versions.length > 0) {
+        pluginDir = join(cacheDir, versions[versions.length - 1]);
+      }
+    } catch { /* no claude-hud installed */ }
+
+    if (pluginDir) {
+      const bunPath = process.env.BUN_PATH || 'bun';
+      const entryPoint = toUnix(join(pluginDir, "src", "index.ts"));
+      const result = execSync(
+        `"${bunPath}" --env-file /dev/null "${entryPoint}"`,
+        { input: stdinData, timeout: 5000, encoding: "utf-8", shell: "bash", stdio: ["pipe", "pipe", "pipe"] }
+      );
+      if (result) {
+        hudLines = result.trimEnd().split("\n");
+        // Write cache
+        try { writeFileSync(HUD_CACHE_PATH, JSON.stringify({ ts: Date.now(), lines: hudLines })); } catch { /* non-fatal */ }
+      }
     }
   }
 } catch { /* claude-hud failed */ }
