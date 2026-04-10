@@ -1,4 +1,4 @@
-import { type CompanionBones, type StatName, STAT_NAMES } from './types.js';
+import { type CompanionBones, type StatName, STAT_NAMES, getPeakStat } from './types.js';
 
 // Species personality archetypes
 const SPECIES_VIBES: Record<string, string[]> = {
@@ -62,18 +62,6 @@ const RARITY_FLAVOR: Record<string, string> = {
   'epic': 'Radiates an unmistakable aura of competence.',
   'legendary': 'The kind of companion developers whisper about in awe.',
 };
-
-function getPeakStat(stats: Record<StatName, number>): StatName {
-  let peak: StatName = STAT_NAMES[0];
-  let max = 0;
-  for (const name of STAT_NAMES) {
-    if (stats[name] > max) {
-      max = stats[name];
-      peak = name;
-    }
-  }
-  return peak;
-}
 
 export function generateBio(bones: CompanionBones): string {
   const vibes = SPECIES_VIBES[bones.species] || ['mysterious', 'unknown', 'defies classification'];

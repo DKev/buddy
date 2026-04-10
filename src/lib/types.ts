@@ -75,3 +75,21 @@ export const HAT_LINES: Record<Hat, string> = {
   beanie: '   (___)    ',
   tinyduck: '    ,>      ',
 };
+
+export function getPeakStat(stats: Record<StatName, number>): StatName {
+  let peak: StatName = STAT_NAMES[0];
+  let max = 0;
+  for (const name of STAT_NAMES) {
+    if (stats[name] > max) { max = stats[name]; peak = name; }
+  }
+  return peak;
+}
+
+export function getDumpStat(stats: Record<StatName, number>): StatName {
+  let dump: StatName = STAT_NAMES[0];
+  let min = 101;
+  for (const name of STAT_NAMES) {
+    if (stats[name] < min) { min = stats[name]; dump = name; }
+  }
+  return dump;
+}

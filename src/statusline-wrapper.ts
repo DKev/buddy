@@ -111,20 +111,8 @@ try {
       let reactionIndicator = '';
       let reactionText = '';
       if (buddy.reaction && buddy.reaction_expires && Date.now() < buddy.reaction_expires) {
-        reactionIndicator = buddy.reaction === 'impressed' ? '!'
-          : buddy.reaction === 'concerned' ? '?'
-          : buddy.reaction === 'amused' ? '~'
-          : buddy.reaction === 'excited' ? '!!'
-          : buddy.reaction === 'thinking' ? '...'
-          : '';
-
-        // Override eyes in art based on reaction state
-        const reactionEye = buddy.reaction === 'impressed' ? '✦'
-          : buddy.reaction === 'concerned' ? '×'
-          : buddy.reaction === 'amused' ? '°'
-          : buddy.reaction === 'excited' ? '◉'
-          : buddy.reaction === 'thinking' ? '·'
-          : '';
+        const reactionEye = buddy.reaction_eye || '';
+        reactionIndicator = buddy.reaction_indicator || '';
 
         if (reactionEye) {
           asciiLines = asciiLines.map((line: string) => {

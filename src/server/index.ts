@@ -12,7 +12,7 @@ import {
   generateName, calculateMood, getReaction,
   renderSprite, renderFace, spriteFrameCount,
 } from "../lib/species.js";
-import { type Companion, STAT_NAMES, RARITY_STARS, RARITY_ANSI } from "../lib/types.js";
+import { type Companion, STAT_NAMES, RARITY_STARS, RARITY_ANSI, getPeakStat, getDumpStat } from "../lib/types.js";
 import { roll, statBar } from "../lib/rng.js";
 import { generateBio } from "../lib/personality.js";
 import { buildObserverPrompt } from "../lib/observer.js";
@@ -21,6 +21,7 @@ import { join } from "path";
 import { homedir } from "os";
 
 const BUDDY_STATUS_PATH = join(homedir(), ".claude", "buddy-status.json");
+let statusDirEnsured = false;
 const RESET = '\x1b[0m';
 
 // Note: when species was overridden at hatch time, bones (rarity, stats, eye, hat)
@@ -124,9 +125,12 @@ function hatchAnimation(companion: Companion): string {
   ].join('\n');
 }
 
-function writeBuddyStatus(companion: Companion, reaction?: { state: string; text: string; expires: number }) {
+function writeBuddyStatus(companion: Companion, reaction?: { state: string; text: string; expires: number; eyeOverride?: string; indicator?: string }) {
   try {
-    mkdirSync(join(homedir(), ".claude"), { recursive: true });
+    if (!statusDirEnsured) {
+      mkdirSync(join(homedir(), ".claude"), { recursive: true });
+      statusDirEnsured = true;
+    }
     writeFileSync(BUDDY_STATUS_PATH, JSON.stringify({
       name: companion.name,
       species: companion.species,
@@ -144,6 +148,8 @@ function writeBuddyStatus(companion: Companion, reaction?: { state: string; text
         reaction: reaction.state,
         reaction_text: reaction.text,
         reaction_expires: reaction.expires,
+        reaction_eye: reaction.eyeOverride || '',
+        reaction_indicator: reaction.indicator || '',
       } : {}),
     }));
   } catch { /* non-fatal */ }
@@ -415,6 +421,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       state: result.reaction.state,
       text: result.templateFallback,
       expires: Date.now() + 10_000,
+      eyeOverride: result.reaction.eyeOverride,
+      indicator: result.reaction.indicator,
     });
 
     return {
@@ -495,8 +503,8 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       return { contents: [{ uri, mimeType: "text/plain", text: "No companion hatched yet. Use buddy_hatch to get started." }] };
     }
     const companion = loadCompanion(row)!;
-    const peakStat = STAT_NAMES.reduce((a, b) => companion.stats[a] > companion.stats[b] ? a : b);
-    const dumpStat = STAT_NAMES.reduce((a, b) => companion.stats[a] < companion.stats[b] ? a : b);
+    const peakStat = getPeakStat(companion.stats);
+    const dumpStat = getDumpStat(companion.stats);
 
     const intro = `# Companion
 

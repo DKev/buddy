@@ -1,6 +1,6 @@
 // src/lib/observer.ts
 
-import { type Companion, type StatName, STAT_NAMES } from './types.js';
+import { type Companion, type StatName, STAT_NAMES, getPeakStat, getDumpStat } from './types.js';
 
 // --- Reaction States ---
 
@@ -27,7 +27,7 @@ const REACTION_KEYWORDS: Record<ReactionState, string[]> = {
   concerned: ['bug', 'error', 'fail', 'crash', 'null', 'undefined', 'broken', 'wrong', 'issue'],
   amused:    ['hack', 'workaround', 'TODO', 'FIXME', 'magic number', 'copy-paste', 'yolo'],
   excited:   ['ship', 'deploy', 'release', 'merge', 'complete', 'done', 'pass', 'success'],
-  thinking:  ['complex', 'architect', 'design', 'pattern', 'refactor', 'restructure', 'trade-off'],
+  thinking:  ['complex', 'architect', 'design', 'pattern', 'tradeoff', 'restructure', 'trade-off'],
   neutral:   [],
 };
 
@@ -38,32 +38,12 @@ export function inferReaction(summary: string): ReactionResult {
   for (const state of REACTION_STATES) {
     if (state === 'neutral') continue;
     const keywords = REACTION_KEYWORDS[state];
-    if (keywords.some(kw => lower.includes(kw))) {
+    if (keywords.some(kw => lower.includes(kw.toLowerCase()))) {
       const mapped = REACTION_MAP[state];
       return { state, eyeOverride: mapped.eye, indicator: mapped.indicator };
     }
   }
   return { state: 'neutral', eyeOverride: '', indicator: '' };
-}
-
-// --- Peak/Dump Stat Helpers ---
-
-function getPeakStat(stats: Record<StatName, number>): StatName {
-  let peak: StatName = STAT_NAMES[0];
-  let max = 0;
-  for (const name of STAT_NAMES) {
-    if (stats[name] > max) { max = stats[name]; peak = name; }
-  }
-  return peak;
-}
-
-function getDumpStat(stats: Record<StatName, number>): StatName {
-  let dump: StatName = STAT_NAMES[0];
-  let min = 101;
-  for (const name of STAT_NAMES) {
-    if (stats[name] < min) { min = stats[name]; dump = name; }
-  }
-  return dump;
 }
 
 // --- Prompt Builder ---
@@ -176,7 +156,11 @@ const SKILLCOACH_TEMPLATES: Record<ReactionState, string[]> = {
   neutral:   ['Looks reasonable.', 'Carry on.', 'Nothing to flag.'],
 };
 
-function templateReaction(
+export const BOTH_TEMPLATES: Record<ReactionState, string[]> = Object.fromEntries(
+  REACTION_STATES.map(s => [s, [...BACKSEAT_TEMPLATES[s], ...SKILLCOACH_TEMPLATES[s]]])
+) as Record<ReactionState, string[]>;
+
+export function templateReaction(
   companion: Companion,
   mode: string,
   summary: string,
@@ -186,7 +170,7 @@ function templateReaction(
     ? SKILLCOACH_TEMPLATES[state]
     : mode === 'backseat'
       ? BACKSEAT_TEMPLATES[state]
-      : [...BACKSEAT_TEMPLATES[state], ...SKILLCOACH_TEMPLATES[state]];
+      : BOTH_TEMPLATES[state];
 
   // Deterministic pick based on summary length
   const idx = summary.length % pool.length;
