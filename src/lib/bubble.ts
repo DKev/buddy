@@ -6,18 +6,26 @@
  */
 
 function wrapText(text: string, width: number): string[] {
-  const words = text.split(' ');
+  // Split on explicit newlines first, then word-wrap each paragraph
+  const paragraphs = text.split('\n');
   const lines: string[] = [];
-  let cur = '';
-  for (const w of words) {
-    if (cur.length + w.length + 1 > width && cur) {
-      lines.push(cur);
-      cur = w;
-    } else {
-      cur = cur ? `${cur} ${w}` : w;
+  for (const para of paragraphs) {
+    if (para.trim() === '') {
+      lines.push(''); // preserve empty lines for spacing
+      continue;
     }
+    const words = para.split(' ');
+    let cur = '';
+    for (const w of words) {
+      if (cur.length + w.length + 1 > width && cur) {
+        lines.push(cur);
+        cur = w;
+      } else {
+        cur = cur ? `${cur} ${w}` : w;
+      }
+    }
+    if (cur) lines.push(cur);
   }
-  if (cur) lines.push(cur);
   return lines;
 }
 
