@@ -374,12 +374,14 @@ export const SPECIES_ANIMATIONS: Record<string, { hatchling: string[]; adult: st
 
 export type Mood = 'happy' | 'content' | 'neutral' | 'curious' | 'grumpy' | 'exhausted';
 
-export function calculateMood(xpEvents: any[], recentInteractions: number): Mood {
-  if (recentInteractions > 10) return 'content';
-  if (recentInteractions > 5) return 'happy';
-  if (xpEvents.length > 3) return 'curious';
-  if (recentInteractions === 0) return 'grumpy';
-  return 'neutral';
+export function calculateMood(xpEvents: any[], recentMemories: number): Mood {
+  // Count both XP events (observes, pets) and memories as interactions
+  const totalInteractions = xpEvents.length + recentMemories;
+  if (totalInteractions > 10) return 'content';
+  if (totalInteractions > 5) return 'happy';
+  if (totalInteractions > 3) return 'curious';
+  if (totalInteractions > 0) return 'neutral';
+  return 'grumpy';
 }
 
 export function generateName(species: string): string {
