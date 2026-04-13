@@ -9,7 +9,7 @@ import {
 import { initDb, db } from "../db/schema.js";
 import {
   SPECIES, SPECIES_LIST,
-  generateName, calculateMood, getReaction,
+  generateName, calculateMood, getReaction, type Mood,
   renderSprite,
 } from "../lib/species.js";
 import { type Companion, STAT_NAMES, RARITY_STARS, RARITY_ANSI, SPARKLE_EYE, getPeakStat, getDumpStat } from "../lib/types.js";
@@ -52,6 +52,17 @@ export function loadCompanion(row: any, userIdOverride?: string): Companion | nu
     mood: row.mood,
     hatchedAt: new Date(row.created_at).getTime(),
   };
+}
+
+export function recalcMood(companionId: string, leveledUp: boolean): Mood {
+  if (leveledUp) return 'happy';
+  const recentXp = db.prepare(
+    "SELECT * FROM xp_events WHERE companion_id = ? AND created_at > datetime('now', '-1 hour')"
+  ).all(companionId);
+  const recentMemories = db.prepare(
+    "SELECT count(*) as count FROM memories WHERE companion_id = ? AND created_at > datetime('now', '-1 hour')"
+  ).get(companionId) as any;
+  return calculateMood(recentXp, recentMemories.count);
 }
 
 function awardXp(companionId: string, eventType: string): { newXp: number; newLevel: number; leveledUp: boolean } {
@@ -404,13 +415,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     const userId = user_id || row.user_id || 'anon';
 
-    const recentXp = db.prepare(
-      "SELECT * FROM xp_events WHERE companion_id = ? AND created_at > datetime('now', '-1 hour')"
-    ).all(row.id);
-    const recentMemories = db.prepare(
-      "SELECT count(*) as count FROM memories WHERE companion_id = ? AND created_at > datetime('now', '-1 hour')"
-    ).get(row.id) as any;
-    const newMood = calculateMood(recentXp, recentMemories.count);
+    const newMood = recalcMood(row.id, false);
     db.prepare("UPDATE companions SET mood = ? WHERE id = ?").run(newMood, row.id);
 
     const companion = loadCompanion({ ...row, mood: newMood }, userId)!;
@@ -483,13 +488,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return { content: [{ type: "text", text: "No companion hatched yet! Use buddy_hatch first." }] };
     }
 
-    const companion = loadCompanion(row, user_id)!;
-    const result = buildObserverPrompt(companion, mode, summary);
-
-    // Award XP for observation
     const xpResult = awardXp(row.id, 'observe');
-    companion.xp = xpResult.newXp;
-    companion.level = xpResult.newLevel;
+
+    // Recalculate mood — observing adds an interaction, level-up sets happy
+    const newMood = recalcMood(row.id, xpResult.leveledUp);
+    db.prepare("UPDATE companions SET mood = ? WHERE id = ?").run(newMood, row.id);
+
+    const companion = loadCompanion({ ...row, mood: newMood, xp: xpResult.newXp, level: xpResult.newLevel }, user_id)!;
+    const result = buildObserverPrompt(companion, mode, summary);
 
     // Write reaction state to status file (expires in 10s)
     // Level-up overrides: sparkle eyes + special indicator
@@ -535,10 +541,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return { content: [{ type: "text", text: "No companion to pet! Use buddy_hatch first." }] };
     }
 
-    const companion = loadCompanion(row)!;
     const xpResult = awardXp(row.id, 'session');
-    companion.xp = xpResult.newXp;
-    companion.level = xpResult.newLevel;
+
+    // Recalculate mood — petting adds an interaction, level-up sets happy
+    const newMood = recalcMood(row.id, xpResult.leveledUp);
+    db.prepare("UPDATE companions SET mood = ? WHERE id = ?").run(newMood, row.id);
+
+    const companion = loadCompanion({ ...row, mood: newMood, xp: xpResult.newXp, level: xpResult.newLevel })!;
     const art = renderSprite(companion);
 
     const hearts = [
