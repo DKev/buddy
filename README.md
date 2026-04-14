@@ -73,7 +73,18 @@ The installer will guide you through onboarding:
 
 ## What Makes Buddy Different
 
-- **It has a real mood system.** Buddy is not just a static pet card. It tracks moods like `happy`, `content`, `neutral`, `curious`, `grumpy`, and `exhausted`.
+- **It has a real mood system.** Buddy is not just a static pet card. Mood is recalculated on every interaction based on your activity in the last hour:
+
+  | Mood | Interactions (last hr) | What it looks like |
+  |---|---|---|
+  | `content` | >10 | Settled in, fully at ease |
+  | `happy` | >5 | Upbeat, expressive animations |
+  | `curious` | >3 | Alert, watching what you do |
+  | `neutral` | >0 | Calm, occasional blink |
+  | `grumpy` | 0 | Still, rare blink, wants attention |
+
+  Level-ups automatically set mood to `happy`. Petting and observing both count as interactions.
+
 - **Petting changes the relationship.** The more you interact with and pet your buddy, the happier it becomes. That care loop is part of the product, not just a gimmick.
 - **It actually levels up.** Buddy has a real XP and leveling system, so your companion develops over time instead of resetting every session.
 - **Feedback is personality-driven.** Reactions are shaped by species, stats, mood, and observer state, so the companion feels like a character rather than a random text generator.
