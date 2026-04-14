@@ -240,9 +240,13 @@ There is also a 1% shiny chance on any hatch.
 
 ## Roadmap
 
-- Unlockable reactions tied to leveling and longer-term interaction
-- Companion upgrades and progression systems beyond base leveling
-- More expressive mood-driven behavior and presentation
+- [ ] **Stat growth on level-up** — stats are currently frozen at birth. Each level-up should grant +1-2 points to a stat (peak stat grows faster, dump stat grows slower, cap at 100). Show stat growth in level-up notification ("WISDOM +2!")
+- [ ] **Species-specific name generation** — deterministic, themed name pools per species instead of generic prefix+suffix combos
+- [ ] **Dream/memory system** — buddy_dream consolidation logic, pattern recognition from stored memories, memory-informed reactions
+- [ ] **Slash command support** — `/buddy pet`, `/buddy status` etc. across all CLI clients
+- [ ] **Responsive statusline** — adapt buddy layout for narrow terminals, don't truncate name
+- [ ] Unlockable reactions tied to leveling and longer-term interaction
+- [ ] More expressive mood-driven behavior and presentation
 
 <details>
 <summary><strong>See the core tools and commands</strong></summary>
