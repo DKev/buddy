@@ -241,7 +241,7 @@ There is also a 1% shiny chance on any hatch.
 ## Roadmap
 
 - [ ] **Stat growth on level-up** — stats are currently frozen at birth. Each level-up should grant +1-2 points to a stat (peak stat grows faster, dump stat grows slower, cap at 100). Show stat growth in level-up notification ("WISDOM +2!")
-- [ ] **Species-specific name generation** — deterministic, themed name pools per species instead of generic prefix+suffix combos
+- [x] **Species-specific name generation** — deterministic, themed two-pool combos (~100 unique names per species)
 - [ ] **Dream/memory system** — buddy_dream consolidation logic, pattern recognition from stored memories, memory-informed reactions
 - [ ] **Slash command support** — `/buddy pet`, `/buddy status` etc. across all CLI clients
 - [ ] **Responsive statusline** — adapt buddy layout for narrow terminals, don't truncate name

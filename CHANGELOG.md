@@ -35,5 +35,10 @@ All notable changes to this project will follow [Semantic Versioning](https://se
 - AI relay fallback instructions for non-Claude CLIs (speech bubble display directive)
 - Extracted companion.ts (shared creation logic) and card.ts (shared rendering) for CLI + server reuse
 - MCP tools: buddy_hatch, buddy_status, buddy_observe, buddy_pet, buddy_mute/unmute, buddy_remember, buddy_dream, buddy_respawn
+- Species-specific deterministic name generation (two-pool combos: ~100 unique names per species, seeded from userId)
+- Redesigned sprites: Void Cat (cat body + omega mouth + tail), Owl (round body + v beak), Snail (antennae + growing trail), Data Drake (wider, faithful to CC original), Rabbit (long ears + buck nose)
+- Sprite alignment fixes across all 21 species (consistent rendered widths, no statusline jitter)
+- Animated GIF sprites for all 21 species in demo/sprites/
+- Test DB isolation (tests use temp DB, never touch production ~/.buddy/buddy.db)
 - MCP resources: buddy://companion, buddy://status, buddy://intro (with VOICE + NEVER sections)
-- 318+ tests (core, species, observer, self-healing, personality, hooks, companion, onboarding)
+- 331+ tests (core, species, observer, self-healing, personality, hooks, companion, onboarding, names)
