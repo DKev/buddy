@@ -12,9 +12,10 @@ Persistent memory, XP, species, and context-aware feedback for Claude Code CLI, 
 [![Node.js](https://img.shields.io/badge/node-18%2B-3c873a?style=flat-square)](https://nodejs.org/)
 [![MCP](https://img.shields.io/badge/protocol-MCP-111827?style=flat-square)](https://modelcontextprotocol.io/)
 
-<p align="center">
-  <img src="demo/buddy-demo.gif" alt="Buddy demo showing hatch, observe, and pet interactions in the terminal" width="760">
-</p>
+<table><tr>
+<td align="center"><strong>Rescue your old buddy</strong><br><img src="demo/buddy-rescue.gif" alt="Buddy rescue flow — scanning for lost companion, signal found, stat card, observer reactions" width="370"></td>
+<td align="center"><strong>Hatch a new one</strong><br><img src="demo/buddy-hatch.gif" alt="Buddy hatch flow — egg animation, stat card, observer reactions, pet" width="370"></td>
+</tr></table>
 
 **Anthropic removed the built-in `/buddy`. Buddy brings them home and makes the companion experience portable across AI terminals.**
 
@@ -188,6 +189,30 @@ Here is the Buddy-owned species sheet in the same spirit: a scannable visual ref
 
 ![Buddy species sheet](demo/species-sheet.svg)
 
+<p align="center">
+<img src="demo/sprites/void-cat.gif" width="60" alt="Void Cat">
+<img src="demo/sprites/rust-hound.gif" width="60" alt="Rust Hound">
+<img src="demo/sprites/data-drake.gif" width="60" alt="Data Drake">
+<img src="demo/sprites/log-golem.gif" width="60" alt="Log Golem">
+<img src="demo/sprites/cache-crow.gif" width="60" alt="Cache Crow">
+<img src="demo/sprites/shell-turtle.gif" width="60" alt="Shell Turtle">
+<img src="demo/sprites/duck.gif" width="60" alt="Duck">
+<img src="demo/sprites/goose.gif" width="60" alt="Goose">
+<img src="demo/sprites/blob.gif" width="60" alt="Blob">
+<img src="demo/sprites/octopus.gif" width="60" alt="Octopus">
+<img src="demo/sprites/owl.gif" width="60" alt="Owl">
+<img src="demo/sprites/penguin.gif" width="60" alt="Penguin">
+<img src="demo/sprites/snail.gif" width="60" alt="Snail">
+<img src="demo/sprites/ghost.gif" width="60" alt="Ghost">
+<img src="demo/sprites/axolotl.gif" width="60" alt="Axolotl">
+<img src="demo/sprites/capybara.gif" width="60" alt="Capybara">
+<img src="demo/sprites/cactus.gif" width="60" alt="Cactus">
+<img src="demo/sprites/robot.gif" width="60" alt="Robot">
+<img src="demo/sprites/rabbit.gif" width="60" alt="Rabbit">
+<img src="demo/sprites/mushroom.gif" width="60" alt="Mushroom">
+<img src="demo/sprites/chonk.gif" width="60" alt="Chonk">
+</p>
+
 </details>
 
 ### 5 personality stats
@@ -332,28 +357,11 @@ This keeps Buddy:
 
 The current demo assets live in [`demo/`](demo):
 
-- [`demo/buddy-demo.gif`](demo/buddy-demo.gif)
-- [`demo/screenshots/code-review.png`](demo/screenshots/code-review.png)
-- [`demo/screenshots/statusline.png`](demo/screenshots/statusline.png)
-- [`demo/record-demo.sh`](demo/record-demo.sh)
-- [`demo/demo-auto.sh`](demo/demo-auto.sh)
-- [`demo/make-gif.mjs`](demo/make-gif.mjs)
-- [`demo/render-gif.mjs`](demo/render-gif.mjs)
-
-The repo already includes a reproducible recording path:
-
-- `demo/record-demo.sh` scaffolds a **Terminalizer**-based recording flow
-- `demo/demo-auto.sh` plays a scripted terminal sequence for hatch, observe, and pet
-- the render scripts turn captured frames into the final GIF asset
-
-If you want to re-film the hero:
-
-1. Build the project
-2. Run `bash demo/record-demo.sh`
-3. Follow the prompts it prints for recording and rendering
-4. Replace `demo/buddy-demo.gif` with the refreshed capture
-
-If you prefer another toolchain, the issue that inspired this README direction specifically called out **asciinema** or **VHS** for recording and **gifski** for conversion as good alternatives.
+- [`demo/buddy-rescue.gif`](demo/buddy-rescue.gif) — rescue onboarding flow
+- [`demo/buddy-hatch.gif`](demo/buddy-hatch.gif) — hatch onboarding flow
+- [`demo/sprites/`](demo/sprites/) — animated GIF for each of the 21 species
+- [`demo/screenshots/`](demo/screenshots/) — static screenshots
+Recording and rendering scripts (`demo/*.mjs`, `demo/*.sh`) are gitignored — they live locally for maintainers.
 
 </details>
 
@@ -365,7 +373,7 @@ Buddy runs inside whatever AI terminal or agentic client you already have open (
 
 **Static overhead (loaded every turn, cached after turn 1):**
 
-We measured the actual MCP payloads on April 15, 2026 (Void Cat companion, `o200k_base` tokenizer). The full tool list, resource list, companion bio, and ASCII card come out to **≈1,350 input tokens**, not 2,000.
+We measured the actual MCP payloads in April 2026 (Void Cat companion, `o200k_base` tokenizer). The full tool list, resource list, companion bio, and ASCII card come out to **≈1,350 input tokens**, not 2,000.
 
 | Component | Tokens (approx.) | Notes |
 |---|---|---|
@@ -392,7 +400,7 @@ Claude Code / Cursor sessions that use Sonnet 4.6 turn on [prompt caching](https
 
 Buddy has three observer modes that control how your companion reacts to completed work:
 
-Each `buddy_observe` call sends a short prompt to the host LLM (~100–150 input tokens for the personality context + your summary) and receives a response. Total round-trip per call:
+Each `buddy_observe` call sends a short prompt to the host LLM (~100–150 incremental input tokens for the tool-call payload — separate from the static overhead above which is already cached) and receives a response. Total round-trip per call:
 
 | Mode | What it does | Input tokens | Output tokens | Total per call | Typical session (10–15 calls) |
 |------|-------------|-------------|--------------|----------------|-------------------------------|
@@ -473,6 +481,16 @@ npm start
 
 </details>
 
+## Contributors
+
+Thank you to everyone who helped bring buddies back to life.
+
+<a href="https://github.com/fiorastudio/buddy/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=fiorastudio/buddy" alt="Contributors" />
+</a>
+
+<sub>Automatically generated via <a href="https://contrib.rocks">contrib.rocks</a></sub>
+
 ## Credits
 
 - Original buddy concept by [Anthropic](https://www.anthropic.com/) in [Claude Code](https://github.com/anthropics/claude-code) `v2.1.89` to `v2.1.94`
@@ -482,7 +500,8 @@ npm start
 Buddy also draws on publicly shared community research around the original companion system and how to preserve it with stable extension points.
 
 - [BonziClaude](https://github.com/zakarth/BonziClaude) by [@zakarth](https://github.com/zakarth) is an important technical reference point in the ecosystem, especially around reverse-engineering and documenting companion-system behavior.
-- Community research and discussion, including the overwhelming feedback on claude code github repository to bring buddy back
+- [claude-buddy](https://github.com/1270011/claude-buddy) by [@1270011](https://github.com/1270011) helped demonstrate the MCP plus terminal-integration preservation approach for keeping buddy-like experiences alive across client changes.
+- Community research and discussion, including work shared on r/Anthropic, helped clarify endpoint behavior and preserve details that would otherwise have been lost.
 - Official [Claude Code](https://github.com/anthropics/claude-code) and [MCP](https://modelcontextprotocol.io/) documentation informed the portable integration approach: MCP server wiring, client configuration, and supported terminal integration surfaces.
 
 Buddy is an open-source project dedicated to keeping the terminal a little less lonely.
