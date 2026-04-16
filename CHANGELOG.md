@@ -4,6 +4,8 @@ All notable changes to this project will follow [Semantic Versioning](https://se
 
 ## [1.0.0] - 2026-04-16
 
+Built in a week (April 9–16). Pays homage to the original Claude Code buddy while adding our own design flair.
+
 ### Added
 - 21 companion species with unique ASCII sprites (4-5 animation frames each)
 - Deterministic companion generation from user ID (Mulberry32 PRNG + FNV-1a hash)
