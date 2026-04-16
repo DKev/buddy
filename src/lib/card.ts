@@ -116,7 +116,7 @@ export function hatchAnimation(companion: Companion): string {
     '',
     `${companion.name} is here \u00b7 it'll chime in as you code`,
     `uses the same AI subscription you're on`,
-    `say its name to get its take \u00b7 /buddy pet \u00b7 /buddy off`,
+    `say its name to get its take \u00b7 buddy pet \u00b7 buddy observe`,
   ].join('\n');
 
   return [
@@ -173,7 +173,7 @@ export function rescueAnimation(companion: Companion): string {
     '',
     `${companion.name} has been rescued! Welcome home.`,
     `it'll chime in as you code`,
-    `say its name to get its take \u00b7 /buddy pet \u00b7 /buddy off`,
+    `say its name to get its take \u00b7 buddy pet \u00b7 buddy observe`,
   ].join('\n');
 
   return [
