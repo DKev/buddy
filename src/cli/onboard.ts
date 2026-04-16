@@ -180,6 +180,7 @@ async function main() {
     });
   }
   choices.push({ label: 'Hatch New Buddy', value: 'hatch' });
+  choices.push({ label: 'Maybe later', value: 'skip' });
 
   // Choose action
   let action: string;
@@ -195,6 +196,11 @@ async function main() {
   }
 
   // Execute
+  if (action === 'skip') {
+    console.log(`\n  ${c(DIM, 'No problem. Say "hatch a buddy" in your CLI to start later.')}\n`);
+    process.exit(0);
+  }
+
   if (action === 'rescue' && oldBuddy) {
     const { companion } = rescueCompanion(oldBuddy);
     console.log(rescueAnimation(companion));
