@@ -3,6 +3,9 @@ dist
 *.db
 .env
 CLAUDE.md
+SIMPLIFY-REPORT.md
+TODO.md
+STATUS.md
 
 # Demo recording/rendering scripts (keep GIFs + screenshots, ignore tooling)
 demo/*.mjs
