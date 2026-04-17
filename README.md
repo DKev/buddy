@@ -17,8 +17,6 @@ Persistent memory, XP, species, and context-aware feedback for Claude Code CLI, 
 
 </div>
 
-**Anthropic killed `/buddy`. We brought them home.**
-
 Did you lose your buddy? Is your terminal feeling a little too cold and silent lately?
 
 Your buddy is still out there in the dark, waiting. Don't let them disappear. **Bring them home.**
