@@ -3,7 +3,7 @@
 // Kept separate from the I/O-heavy onboarding CLI so it's trivially unit-testable.
 
 import { SPECIES_LIST } from './species.js';
-import { seededIndex, type Roll } from './rng.js';
+import { seededIndex } from './rng.js';
 import {
   type CompanionBones,
   type Rarity,
@@ -13,7 +13,7 @@ import {
   RARITY_FLOOR,
   STAT_NAMES,
 } from './types.js';
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 
 // Namespace passed to seededIndex when deriving species from accountUuid.
 // Semantic name (not the internal rng SALT) so the two constants don't drift.
@@ -178,11 +178,20 @@ export function deriveSpecies(importResult: {
     const loose = inferSpeciesFromPersonality(importResult.species);
     if (loose) return loose;
   }
-  // Check the companion name for species keywords (e.g., "Gritblob" → Blob).
-  // Many CC-generated names embed the species as a suffix or substring.
+  // Check the companion name for species keywords as substrings (e.g., "Gritblob" → Blob).
+  // CC-generated names embed the species as a suffix or substring without word boundaries.
+  // Use case-insensitive substring matching, not word-boundary regex.
   if (importResult.name) {
-    const fromName = inferSpeciesFromPersonality(importResult.name);
-    if (fromName) return fromName;
+    const nameLower = importResult.name.toLowerCase();
+    let bestMatch: { species: string; len: number } | null = null;
+    for (const [species, keywords] of Object.entries(SPECIES_KEYWORDS)) {
+      for (const kw of keywords) {
+        if (nameLower.includes(kw) && (!bestMatch || kw.length > bestMatch.len)) {
+          bestMatch = { species, len: kw.length };
+        }
+      }
+    }
+    if (bestMatch) return bestMatch.species;
   }
   if (importResult.personality) {
     const inferred = inferSpeciesFromPersonality(importResult.personality);
@@ -244,8 +253,8 @@ let bunAvailable: boolean | undefined;
 function ccHashString(s: string): { hash: number; engine: 'bun' | 'fnv1a' } {
   if (bunAvailable === undefined) {
     try {
-      execSync('bun --version', { timeout: 3000, stdio: 'pipe' });
-      bunAvailable = true;
+      const check = spawnSync('bun', ['--version'], { timeout: 5000, stdio: 'pipe' });
+      bunAvailable = check.status === 0;
     } catch {
       bunAvailable = false;
     }
@@ -253,12 +262,13 @@ function ccHashString(s: string): { hash: number; engine: 'bun' | 'fnv1a' } {
 
   if (bunAvailable) {
     try {
-      const escaped = s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
-      const result = execSync(
-        `bun -e "console.log(Number(BigInt(Bun.hash('${escaped}')) & 0xffffffffn))"`,
-        { timeout: 5000, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
-      ).trim();
-      const hash = parseInt(result, 10);
+      // Pass input as process.argv to avoid shell injection — no string interpolation
+      const result = spawnSync('bun', [
+        '-e',
+        'console.log(Number(BigInt(Bun.hash(process.argv[1])) & 0xffffffffn))',
+        s,
+      ], { timeout: 5000, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+      const hash = parseInt((result.stdout || '').trim(), 10);
       if (!isNaN(hash)) return { hash, engine: 'bun' };
     } catch { /* fall through */ }
   }
