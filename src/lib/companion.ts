@@ -7,7 +7,7 @@ import { generateBio } from './personality.js';
 import { sanitizeName } from './sanitize.js';
 import { type Companion, RARITY_STARS } from './types.js';
 import { levelFromXp } from './leveling.js';
-import { deriveSpecies } from './oldBuddy.js';
+import { deriveSpecies, rollWithCCCompat } from './oldBuddy.js';
 import { randomUUID } from 'crypto';
 import { writeFileSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
@@ -151,11 +151,14 @@ export function rescueCompanion(importResult: {
     || importResult.accountUuid
     || `imported-${importResult.name}`;
 
-  const { bones } = roll(userId, SPECIES_LIST);
+  // Use CC-compatible roll to reproduce exact stats/rarity/eye from the
+  // original Claude Code buddy. Falls back to our roll() if no CC userId.
+  const hasCCUserId = !!(importResult.userId || importResult.user_id);
+  const ccResult = hasCCUserId ? rollWithCCCompat(userId) : null;
+  const bones = ccResult ? ccResult.bones : roll(userId, SPECIES_LIST).bones;
 
-  // Resolve species via the shared ladder (explicit → infer from personality →
-  // accountUuid-derived). bones.species is the last-resort fallback, keyed to
-  // the userId roll so it's stable per user even without personality/uuid.
+  // Resolve species via the shared ladder (explicit → name → personality →
+  // accountUuid-derived). bones.species is the last-resort fallback.
   const finalSpecies = deriveSpecies(importResult) ?? bones.species;
 
   const finalName = sanitizeName(importResult.name) || generateName(finalSpecies, userId);
