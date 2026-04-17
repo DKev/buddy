@@ -72,4 +72,9 @@ export function initDb() {
   try {
     db.exec(`ALTER TABLE companions ADD COLUMN observer_mode TEXT DEFAULT 'both'`);
   } catch { /* column already exists */ }
+
+  // Migration: add cc_rescue flag for CC-imported buddies (uses Bun wyhash for stats)
+  try {
+    db.exec(`ALTER TABLE companions ADD COLUMN cc_rescue INTEGER DEFAULT 0`);
+  } catch { /* column already exists */ }
 }

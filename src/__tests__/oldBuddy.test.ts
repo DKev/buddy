@@ -3,6 +3,7 @@ import {
   parseOldBuddy,
   inferSpeciesFromPersonality,
   deriveSpecies,
+  rollWithCCCompat,
   SPECIES_KEYWORDS,
 } from '../lib/oldBuddy.js';
 import { SPECIES_LIST } from '../lib/species.js';
@@ -328,5 +329,109 @@ describe('deriveSpecies', () => {
         expect(deriveSpecies({ species: legacy }), `legacy "${legacy}" should map to "${canonical}"`).toBe(canonical);
       }
     });
+
+    it('infers species from companion name', () => {
+      expect(deriveSpecies({ name: 'Gritblob' })).toBe('Blob');
+      expect(deriveSpecies({ name: 'ShadowCat' })).toBe('Void Cat');
+      expect(deriveSpecies({ name: 'Ducksworth' })).toBe('Duck');
+      expect(deriveSpecies({ name: 'Shroomsworth' })).toBe('Mushroom');
+    });
+
+    it('name inference is tried before personality', () => {
+      // Name says "blob", personality says "turtle" — name wins
+      expect(deriveSpecies({
+        name: 'Gritblob',
+        personality: 'a turtle who likes to swim',
+      })).toBe('Blob');
+    });
+
+    it('falls back to personality when name has no keywords', () => {
+      expect(deriveSpecies({
+        name: 'Sparky',
+        personality: 'a patient troubleshooter turtle',
+      })).toBe('Shell Turtle');
+    });
   });
+});
+
+describe('parseOldBuddy — top-level userID', () => {
+  it('pulls userID from top-level .claude.json (CC format)', () => {
+    const data = {
+      userID: 'top-level-uid-123',
+      companion: {
+        name: 'Gritblob',
+        personality: 'A patient troubleshooter',
+        hatchedAt: 1775047109797,
+      },
+    };
+    const result = parseOldBuddy(data);
+    expect(result?.userId).toBe('top-level-uid-123');
+  });
+
+  it('companion-level userId takes precedence over top-level', () => {
+    const data = {
+      userID: 'top-level',
+      companion: {
+        name: 'Test',
+        userId: 'companion-level',
+      },
+    };
+    const result = parseOldBuddy(data);
+    expect(result?.userId).toBe('companion-level');
+  });
+
+  it('flat shape also picks up top-level userID', () => {
+    const data = {
+      userID: 'top-uid',
+      buddyName: 'FlatBuddy',
+      buddySpecies: 'Duck',
+    };
+    const result = parseOldBuddy(data);
+    expect(result?.userId).toBe('top-uid');
+  });
+});
+
+describe('rollWithCCCompat', () => {
+  it('returns valid bones with all required fields', () => {
+    const { bones, engine } = rollWithCCCompat('test-user-id');
+    expect(bones).toHaveProperty('species');
+    expect(bones).toHaveProperty('eye');
+    expect(bones).toHaveProperty('rarity');
+    expect(bones).toHaveProperty('stats');
+    expect(bones).toHaveProperty('hat');
+    expect(bones).toHaveProperty('shiny');
+    expect(['bun', 'fnv1a']).toContain(engine);
+  }, 15000);
+
+  it('is deterministic for the same userId', () => {
+    const a = rollWithCCCompat('determinism-test');
+    const b = rollWithCCCompat('determinism-test');
+    expect(a.bones.stats).toEqual(b.bones.stats);
+    expect(a.bones.species).toBe(b.bones.species);
+    expect(a.bones.eye).toBe(b.bones.eye);
+    expect(a.bones.rarity).toBe(b.bones.rarity);
+  }, 15000);
+
+  it('produces different results for different userIds', () => {
+    const a = rollWithCCCompat('user-alpha');
+    const b = rollWithCCCompat('user-beta');
+    // Stats should differ (extremely unlikely to match by chance)
+    expect(a.bones.stats).not.toEqual(b.bones.stats);
+  }, 15000);
+
+  it('species is from CC list (18 species, short names)', () => {
+    const CC_SPECIES = [
+      'duck', 'goose', 'blob', 'cat', 'dragon', 'octopus', 'owl', 'penguin',
+      'turtle', 'snail', 'ghost', 'axolotl', 'capybara', 'cactus', 'robot',
+      'rabbit', 'mushroom', 'chonk',
+    ];
+    const { bones } = rollWithCCCompat('species-test');
+    expect(CC_SPECIES).toContain(bones.species);
+  }, 15000);
+
+  it('eye is never ✦ (sparkle reserved in our system)', () => {
+    // Single roll — Bun spawn is expensive, don't loop
+    const { bones } = rollWithCCCompat('sparkle-eye-test');
+    expect(bones.eye).not.toBe('✦');
+  }, 15000);
 });
