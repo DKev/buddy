@@ -24,8 +24,12 @@ Built in a week (April 9–16). Pays homage to the original Claude Code buddy wh
   - **Rescue mode**: imports your old Claude Code buddy from `~/.claude.json` — uses original CC userID for deterministic restoration (same name, species, stats, eye, rarity)
   - **Hatch mode**: fresh companion with random species, stats, and personality
   - Interactive arrow-key menu with `--non-interactive` and `--no-onboard` flags for CI
-- Choreographed animation sequences (15-frame idle cycle, 500ms ticks, mood-aware: idle/grumpy/happy patterns)
-- Statusline integration (side-by-side with claude-hud, full speech bubble rendering)
+- Choreographed animation sequences (15-frame idle cycle, species-aware profiles with per-species dwell timing)
+- Species-aware animation engine (`src/lib/animation.ts`): `AnimationProfile` type system, `defaultProfile` factory, reaction-driven frame cycling
+- Pet-hearts statusline overlay (cycling ♥ row above sprite for ~5s after petting)
+- Bubble fade/dim (ANSI dim in final 3s of speech bubble TTL before expiry)
+- Dwell-based ambient text (seededIndex determinism, no flicker, 15-20s dwell windows)
+- Statusline integration (side-by-side with claude-hud, full speech bubble rendering, `refreshInterval: 2`)
 - Mood recalibration on every interaction (observe, pet, status) + happy on level-up
 - Self-healing level derivation from XP (loadCompanion always derives level, heals stale DB)
 - Name sanitization (prompt injection protection: unicode control chars, template injection, 40-char limit)
@@ -43,4 +47,4 @@ Built in a week (April 9–16). Pays homage to the original Claude Code buddy wh
 - Animated GIF sprites for all 21 species in demo/sprites/
 - Test DB isolation (tests use temp DB, never touch production ~/.buddy/buddy.db)
 - MCP resources: buddy://companion, buddy://status, buddy://intro (with VOICE + NEVER sections)
-- 331+ tests (core, species, observer, self-healing, personality, hooks, companion, onboarding, names)
+- 439 tests (core, species, observer, self-healing, personality, hooks, companion, onboarding, names, animation stability, blink parity, width consistency)
