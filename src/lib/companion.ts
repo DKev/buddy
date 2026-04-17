@@ -31,7 +31,11 @@ export function companionExists(): any | null {
 export function loadCompanion(row: any, userIdOverride?: string): Companion | null {
   if (!row) return null;
   const userId = userIdOverride || row.user_id || 'anon';
-  const { bones } = roll(userId, SPECIES_LIST);
+  // CC-rescued buddies need Bun's wyhash to reproduce original stats.
+  // The cc_rescue flag is set during rescueCompanion when importing from CC.
+  const bones = row.cc_rescue
+    ? rollWithCCCompat(userId).bones
+    : roll(userId, SPECIES_LIST).bones;
   const xp = row.xp || 0;
   const derivedLevel = levelFromXp(xp);
 
@@ -170,16 +174,18 @@ export function rescueCompanion(importResult: {
   // Preserve the imported hatchedAt if present — rescuing is continuation, not rebirth.
   const hatchedAt = importResult.hatchedAt ?? Date.now();
 
+  const ccRescue = hasCCUserId ? 1 : 0;
+
   if (importResult.hatchedAt !== undefined) {
     // ISO 8601 'Z' round-trips cleanly through loadCompanion's new Date(row.created_at).getTime().
     const createdAt = new Date(importResult.hatchedAt).toISOString();
     db.prepare(
-      'INSERT INTO companions (id, name, species, user_id, personality_bio, created_at) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(id, finalName, finalSpecies, userId, bio, createdAt);
+      'INSERT INTO companions (id, name, species, user_id, personality_bio, created_at, cc_rescue) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(id, finalName, finalSpecies, userId, bio, createdAt, ccRescue);
   } else {
     db.prepare(
-      'INSERT INTO companions (id, name, species, user_id, personality_bio) VALUES (?, ?, ?, ?, ?)'
-    ).run(id, finalName, finalSpecies, userId, bio);
+      'INSERT INTO companions (id, name, species, user_id, personality_bio, cc_rescue) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(id, finalName, finalSpecies, userId, bio, ccRescue);
   }
 
   const companion: Companion = {
