@@ -33,7 +33,7 @@ jobs:
           fi
 
           # 2. Fetch traffic data from GitHub API
-          if ! TRAFFIC_DATA=$(gh api repos/fiorastudio/buddy/traffic/clones 2>/tmp/api_error); then
+          if ! TRAFFIC_DATA=$(env GH_TOKEN=${{ secrets.PERSONAL_ACCESS_TOKEN }} gh api repos/fiorastudio/buddy/traffic/clones 2>/tmp/api_error); then
             echo "Warning: Error fetching traffic data (likely permissions): $(cat /tmp/api_error)"
             TRAFFIC_DATA='{"clones":[]}'
           fi
