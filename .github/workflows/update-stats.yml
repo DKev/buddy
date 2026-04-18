@@ -2,12 +2,14 @@ name: Update Stats Monitor
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Daily at 00:00 UTC
+    - cron: '0 8 * * *' # Daily at 04:00 AM ET (08:00 UTC)
   workflow_dispatch: # Allow manual trigger
 
 jobs:
   update-stats:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
