@@ -20,6 +20,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_ACTION_TRAFFIC_TOKEN || github.token }}
         run: |
+          # Use local GH_TOKEN for traffic, and standard GH_TOKEN for push if needed
+          # (Standard GH_TOKEN is handled by actions/checkout or git config)
           STATS_FILE=".github/stats/clone-history.json"
           
           # 1. Load existing stats or initialize
