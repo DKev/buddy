@@ -90,7 +90,8 @@ jobs:
           if ! git diff --cached --quiet; then
             git commit -m "chore: update buddies rescued stats to $RESCUED_TEXT [skip ci]"
             # Use the GITHUB_TOKEN for pushing
-            git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $(echo -n x-access-token:${{ secrets.GITHUB_TOKEN }} | base64)" push origin HEAD:master
+            git push origin HEAD:master
           else
             echo "No changes to commit."
           fi
+
