@@ -549,4 +549,6 @@ Learn more about the mission to rescue Buddy and the engineering behind the scen
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. This project is licensed under the MIT License. See [LICENSE](LICENSE). You are free to use, host, and monetize this project (you must credit this project in case of distribution and monetization).
+
+
