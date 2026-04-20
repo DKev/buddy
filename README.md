@@ -1,10 +1,10 @@
-# Buddy: The /buddy Rescue Mission for Your AI Terminal
+# Buddy: A Virtual Pet for Your AI 
 
 <div align="center">
 
-### The open-source `/buddy` rescue mission for AI terminals
+### The open-source `/buddy` rescue mission after anthropic removed [buddy](https://github.com/anthropics/claude-code/issues/45596) on April 9th, 2026 
 
-Persistent memory, XP, species, and context-aware feedback for Claude Code CLI, Codex CLI, Gemini CLI, Copilot CLI, Cursor CLI, and other MCP-capable clients.
+Persistent memory, XP evolutions, 21 species, and context-aware feedback for Claude Code CLI, Codex CLI, Gemini CLI, Copilot CLI, Cursor CLI, Openclaw, and other MCP-capable clients. 
 
 **🚀 3000+ clones · 1000+ buddies rescued or hatched · 1 week in the wild**
 
