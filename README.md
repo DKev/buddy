@@ -302,11 +302,11 @@ There is also a 1% shiny chance on any hatch.
 - [ ] **Stat growth on level-up** — stats are currently frozen at birth. Each level-up should grant +1-2 points to a stat (peak stat grows faster, dump stat grows slower, cap at 100). Show stat growth in level-up notification ("WISDOM +2!")
 - [x] **Species-specific name generation** — deterministic, themed two-pool combos (~100 unique names per species)
 - [ ] **Dream/memory system** — buddy_dream consolidation logic, pattern recognition from stored memories, memory-informed reactions
-- [ ] **Slash command support** — `/buddy pet`, `/buddy status` etc. across all CLI clients
-- [ ] **Responsive statusline** — adapt buddy layout for narrow terminals, don't truncate name
-- [ ] Unlockable reactions tied to leveling and longer-term interaction
-- [ ] More expressive mood-driven behavior and presentation
-- [ ] plugins support
+- [ ] **Unlockable reactions** tied to leveling and longer-term interaction
+- [ ] **Buddy Mastery Reward**: Reach Level 50 to unlock Priority Development for your custom species request.
+- [ ] **Multiple buddies support**: One unique buddy for each group member in a group-chat setting (e.g. Whatsapp group, telegram group, slack channels)
+- [ ] **Pokemon-style 3-stage evolution system**: Evolve from turtle to tortoise at level 25
+
 
 <details>
 <summary><strong>See the core tools and commands</strong></summary>
