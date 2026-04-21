@@ -306,6 +306,7 @@ There is also a 1% shiny chance on any hatch.
 - [ ] **Unlockable reactions** tied to leveling and longer-term interaction
 - [ ] **Buddy Mastery Reward**: Reach Level 50 to unlock Priority Development for your custom species request.
 - [ ] **Multiple buddies support**: One unique buddy for each group member in a group-chat setting (e.g. Whatsapp group, telegram group, slack channels)
+- [ ] **Multilangauge Support**: 中文, espanol
 - [ ] **Pokemon-style evolution system**: Evolve from turtle to tortoise at level 25
 - [ ] **Ambient Daemon Mode**: a small TUI running in its own tmux pane, polling its own SQLite state, animating the sprite, optionally calling a cheap model (Haiku/local).
 - [ ] **Sample Playbook for [ReachyMini](https://huggingface.co/spaces/pollen-robotics/Reachy_Mini) robot integration** so your buddy can have a physical body and come to life!
