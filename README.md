@@ -553,7 +553,7 @@ If Buddy made your terminal less lonely, consider starring.
 Learn more about the mission to rescue Buddy and the engineering behind the scenes.
 
 - **Hacker News**: [Discussion on the Buddy Rescue Mission](https://news.ycombinator.com/item?id=47792606)
-- **Dev.to Series**: [Field Notes from a Solo Builder: Shipping the Beloved Claude Code Buddy into the Wild (Part I)](https://dev.to/fiorastudio/field-notes-from-a-solo-builder-shipping-the-beloved-claude-code-buddy-into-the-wild-part-i-3lpa) , [Field Notes from a Solo Builder: Shipping the Beloved Claude Code Buddy into the Wild (Part II)] (https://dev.to/fiorastudio/first-principles-architecture-and-the-token-tax-5g4p)
+- **Dev.to Series**: [Field Notes from a Solo Builder: Shipping the Beloved Claude Code Buddy into the Wild (Part I)](https://dev.to/fiorastudio/field-notes-from-a-solo-builder-shipping-the-beloved-claude-code-buddy-into-the-wild-part-i-3lpa) , [Field Notes from a Solo Builder: Shipping the Beloved Claude Code Buddy into the Wild (Part II)](https://dev.to/fiorastudio/first-principles-architecture-and-the-token-tax-5g4p)
 
 
 ## Author
