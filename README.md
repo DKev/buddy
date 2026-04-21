@@ -17,9 +17,9 @@ Persistent memory, XP evolutions, 21 species, and context-aware feedback for Cla
 <table>
  <tr>
  <td align="center"><strong>Works<br/>with</strong></td>
- <td align="center"><img src="doc/assets/logos/openclaw.svg" width="32" alt="OpenClaw" /><br/><sub>OpenClaw</sub></td>
  <td align="center"><img src="doc/assets/logos/claude.svg" width="32" alt="Claude Code CLI" /><br/><sub>Claude Code</sub></td>
  <td align="center"><img src="doc/assets/logos/codex.svg" width="32" alt="Codex CLI" /><br/><sub>Codex</sub></td>
+ <td align="center"><img src="doc/assets/logos/openclaw.svg" width="32" alt="OpenClaw" /><br/><sub>OpenClaw</sub></td>
  <td align="center"><img src="doc/assets/logos/cursor.svg" width="32" alt="Cursor CLI" /><br/><sub>Cursor</sub></td>
  <td align="center"><img src="doc/assets/logos/gemini.svg" width="32" alt="Gemini CLI" /><br/><sub>Gemini</sub></td>
  <td align="center"><img src="doc/assets/logos/copilot.svg" width="32" alt="Github Copilot CLI" /><br/><sub>Copilot</sub></td>
