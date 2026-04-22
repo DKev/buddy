@@ -306,18 +306,21 @@ There is also a 1% shiny chance on any hatch.
 
 ## Roadmap
 
-- [ ] **Stat growth on level-up** — stats are currently frozen at birth. Each level-up should grant +1-2 points to a stat (peak stat grows faster, dump stat grows slower, cap at 100). Show stat growth in level-up notification ("WISDOM +2!")
-- [x] **Species-specific name generation** — deterministic, themed two-pool combos (~100 unique names per species)
+- [ ] **Slimemold integration** - Anti-Sycophancy Reasoning Auditor
 - [ ] **Dream/memory system** — buddy_dream consolidation logic, pattern recognition from stored memories, memory-informed reactions
 - [ ] **Unlockable reactions** tied to leveling and longer-term interaction
-- [ ] **Buddy Mastery Reward**: Reach Level 50 to unlock Priority Development for your custom species request.
-- [ ] **Multiple buddies support**: One unique buddy for each group member in a group-chat setting (e.g. Whatsapp group, telegram group, slack channels)
 - [ ] **Multilangauge Support**: 中文, espanol
 - [ ] **Pokemon-style evolution system**: Evolve from turtle to tortoise at level 25
 - [ ] **Ambient Daemon Mode**: a small TUI running in its own tmux pane, polling its own SQLite state, animating the sprite, optionally calling a cheap model (Haiku/local).
-- [ ] **Sample Playbook for [ReachyMini](https://huggingface.co/spaces/pollen-robotics/Reachy_Mini) robot integration** so your buddy can have a physical body and come to life!
+- [ ] **Sample Integration Playbook for [ReachyMini](https://huggingface.co/spaces/pollen-robotics/Reachy_Mini) robot integration** so your buddy can have a physical body and come to life!
 - [ ] **Slash Command Support**: trigger buddy_pet via /buddy_pet
-- [ ] **Compact output mode for better messaging platform support (Whatsapp/Slack)**: Optimize the output for messaging platforms.
+- [ ] **Compact Output mode for Enhanced Messaging Platform Support (Whatsapp/Slack)**: Optimize the output for messaging platforms.
+- [ ] **Stat growth on level-up** — stats are currently frozen at birth. Each level-up should grant +1-2 points to a stat (peak stat grows faster, dump stat grows slower, cap at 100). Show stat growth in level-up notification ("WISDOM +2!")
+- [ ] **Multiple buddies support**: One unique buddy for each group member in a group-chat setting (e.g. Whatsapp group, telegram group, slack channels)
+- [ ] **Buddy Mastery Reward**: Reach Level 50 to unlock Priority Development for your custom species request.
+
+
+
 
 <details>
 <summary><strong>See the core tools and commands</strong></summary>
@@ -330,13 +333,23 @@ These stay tucked away by default, but Buddy exposes a real MCP surface for comp
 |---|---|
 | `buddy_hatch` | Hatch a new buddy, optionally choosing a name or species |
 | `buddy_status` | Show current stats, mood, and card art |
-| `buddy_observe` | React to completed work in `backseat`, `skillcoach`, or `both` mode |
+| `buddy_observe` | React to completed work. Fire on hooks |
 | `buddy_pet` | Pet your buddy |
 | `buddy_remember` | Save a memory |
 | `buddy_dream` | Consolidate memories |
 | `buddy_mute` | Pause reactions |
 | `buddy_unmute` | Resume reactions |
 | `buddy_respawn` | Reset and start over |
+| `buddy_mode` | Change interaction modes |
+| `backseat` | Personality Only |
+| `skillcoach` | Code Feedback Only|
+| `both` | Code Feedback with Personality |
+
+* backseat — personality only (unchanged)
+* skillcoach — code feedback only (unchanged)
+* both — personality + code (unchanged, default)
+* max — everything: personality + code + SlimeMold reasoning audit
+
 
 The most important loop is:
 
