@@ -340,10 +340,7 @@ These stay tucked away by default, but Buddy exposes a real MCP surface for comp
 | `buddy_mute` | Pause reactions |
 | `buddy_unmute` | Resume reactions |
 | `buddy_respawn` | Reset and start over |
-| `buddy_mode` | Change interaction modes |
-| `backseat` | Personality Only |
-| `skillcoach` | Code Feedback Only|
-| `both` | Code Feedback with Personality |
+| `buddy_mode` | Change interaction modes. `buddy mode backseat` - Personality Only. `buddy mode skillcoach` - Code Feedback Only. `buddy mode both` - Code Feedback with Personality (default)|
 
 * backseat — personality only (unchanged)
 * skillcoach — code feedback only (unchanged)
