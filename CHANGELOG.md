@@ -2,7 +2,7 @@
 
 All notable changes to this project will follow [Semantic Versioning](https://semver.org/).
 
-## [1.0.3] - 2026-04-22
+## [1.0.4] - 2026-04-22
 
 ### Added
 - **Verbatim card display:** `buddy_hatch`, `buddy_status`, and `buddy_pet` now include DISPLAY VERBATIM directives so LLMs render ASCII art in code blocks instead of summarizing or truncating it.
