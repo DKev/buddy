@@ -129,6 +129,132 @@ The installer will guide you through onboarding:
 - **Feedback is personality-driven.** Reactions are shaped by species, stats, mood, and observer state, so the companion feels like a character rather than a random text generator.
 - **It survives client churn.** Because it is built on MCP and local state, your buddy can outlive terminal restarts and host-client changes.
 
+## Max Mode
+
+> *Max mode watches your coding sessions for risky assumptions and quiet wins — and tells you about them in Buddy's voice.*
+
+AI coding assistants are yes-men. They agree with everything you say. Max mode is the one feature that pushes back — but gently, and in your buddy's voice, not a scary linter. It catches the moments where you and your AI are vibing too hard and nobody's checking if the code actually makes sense.
+
+Think of it as: **Buddy is the friend who says "are you sure about that?" before you push to production at 2 AM.**
+
+```
+buddy_mode max=true     # turn it on
+buddy_mode max=false    # turn it off
+```
+
+Voice mode (`backseat` / `skillcoach` / `both`) and max mode are independent — set them separately.
+
+### How it works (the Lego version)
+
+Imagine you're building a Lego castle with a friend. Your friend says "we should make the tower tall because tall towers look cool." You say "yeah totally" and start building it tall. Then you put a heavy dragon on top and... it falls over. Nobody stopped to ask "wait, can the base actually hold a tall tower with a dragon?"
+
+That's what max mode catches. It watches your coding conversation and spots 6 patterns:
+
+### 3 Dark Nudges
+
+**1. Load-Bearing Vibes** 🧱
+
+*"You're building on top of a guess."*
+
+You said something like "this API probably returns JSON" and then built 5 things on top of that assumption — but nobody actually checked. If that guess is wrong, everything on top of it breaks. Like building your whole Lego castle on a wobbly plate and hoping it holds.
+
+**2. Unchallenged Chain** 🔗
+
+*"You went 4+ steps without anyone pushing back."*
+
+You said A, which led to B, which led to C, which led to D — and nobody questioned any step. That's like following a chain of "because" without ever stopping to ask "wait, is that actually true?" The longer the chain without a check, the more likely something's off.
+
+**3. Echo Chamber** 🪞
+
+*"You and the AI are just agreeing with each other."*
+
+You say "let's use Redis." AI says "great idea, Redis is perfect." You say "yeah Redis is fast." AI says "absolutely, Redis is the way to go." Nobody brought up alternatives or tradeoffs. You're both just high-fiving in a mirror.
+
+### 3 Bright Nudges
+
+**4. Well-Sourced Load Bearer** ✅
+
+*"You built on solid ground."*
+
+Same as #1, except this time you actually checked — you read the docs, tested it, or cited a source. Now the 5 things built on top are safe. Buddy celebrates this because good foundations deserve recognition.
+
+**5. Productive Stress Test** 💪
+
+*"Someone pushed back and the idea survived."*
+
+You had a chain of reasoning, someone challenged a step in the middle ("wait, does that actually work?"), and after checking, it held up. The idea is now *stronger* because it got questioned. Like testing your Lego tower by shaking it — if it survives, you trust it more.
+
+**6. Grounded Premise Adopted** 🌱
+
+*"You started with a real fact and it became foundational."*
+
+You cited real documentation, a real test result, or a real measurement — and that fact became the base for other decisions. That's how good engineering works. Start with real evidence, build from there.
+
+### What it feels like in practice
+
+Without max mode:
+> "Nice commit! 🐣 +10 XP"
+
+With max mode (dark nudge):
+> "Nice commit! 🐣 +10 XP — btw, that assumption about the API response format is holding up a lot of your logic. Might be worth a quick sanity check before you build more on it."
+
+With max mode (bright nudge):
+> "Nice commit! 🐣 +10 XP — love that you actually tested the response format before building the parser on top of it. Solid foundation."
+
+### Under the hood (for the technically curious)
+
+<details>
+<summary>Knowledge graph, ontology, and performance details</summary>
+
+Max mode builds a local directed graph from your conversation. The host LLM extracts claims — assertions tagged with an epistemic basis — and typed edges between them.
+
+**Epistemic basis types:**
+
+| Basis | Meaning |
+|---|---|
+| `research` | Cited source |
+| `empirical` | Measured or observed |
+| `deduction` | Derived from premises |
+| `analogy` | X-is-like-Y reasoning |
+| `definition` | Naming or classification |
+| `llm_output` | Model-generated, ungrounded |
+| `assumption` | Stated without justification |
+| `vibes` | Unsourced hunch |
+
+**Edge types:** `supports`, `depends_on`, `contradicts`, `questions`
+
+**Performance and limits:**
+
+| Parameter | Value |
+|---|---|
+| Claims per session | 200 cap (LRU pruning) |
+| Detector budget | 30 ms (skip if exceeded) |
+| Cold-start gate | 6 claims before detectors fire |
+| Claim length | 240 chars max, sanitized for prompt injection |
+| Dark-nudge cooldown | 10 observes per anchor |
+| Bright-nudge cooldown | 5 observes per anchor |
+| Session scope | Workspace + date (cwd-hash + YYYYMMDD) |
+| Retention | 30-day auto-prune on startup |
+
+Bright nudges are slightly favored — after 3 dark findings with zero bright, the next must be bright.
+
+**Token cost:** ~500-1000 extra tokens per `buddy_observe` when on. Default calls with max mode off are unaffected.
+
+**Host compatibility:** Works best on Claude hosts where the extraction prompt is reliably honored. Run `buddy_doctor` to check.
+
+</details>
+
+### Privacy
+
+Everything stays local. Claim snippets (240 chars each, plaintext) live in `~/.buddy/buddy.db`. Buddy has no network code — nothing leaves your machine. Sessions older than 30 days auto-prune on startup.
+
+- `buddy_forget` — purge reasoning data (`session` or `all`)
+- `buddy_reasoning_status` — inspect stored claims, sessions, finding history
+
+### Attribution
+
+Max mode is a port of [slimemold](https://github.com/justinstimatze/slimemold) by [@justinstimatze](https://github.com/justinstimatze) (Apache-2.0). Contributed to buddy under MIT. The standalone project has the full system with conditional gates and evaluation against reasoning benchmarks; buddy ships the foundational six detectors.
+
 ## Supported Clients
 
 | Client | Status |
@@ -306,7 +432,7 @@ There is also a 1% shiny chance on any hatch.
 
 ## Roadmap
 
-- [ ] **Max Mode with Slimemold integration** - Anti-Sycophancy Reasoning Auditor. personality + code + SlimeMold reasoning audit
+- [x] **Max Mode with Slimemold integration** - Anti-Sycophancy Reasoning Auditor. personality + code + SlimeMold reasoning audit ([see below](#max-mode--structural-reasoning))
 - [ ] **Dream/memory system** — buddy_dream consolidation logic, pattern recognition from stored memories, memory-informed reactions
 - [ ] **Unlockable reactions** tied to leveling and longer-term interaction
 - [ ] **Multilangauge Support**: 中文, espanol

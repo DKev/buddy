@@ -2,28 +2,51 @@
 
 All notable changes to this project will follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.0.5] - 2026-04-23
 
 ### Added
-- **Max mode** — structural reasoning analysis, optional per-companion. When on, buddy notices structural patterns in the conversation (load-bearing assumptions, unchallenged chains, well-sourced premises, productive stress-tests, echo chambers, grounded premises adopted) and weaves one observation into its in-character reaction each observe. Extraction happens on the host LLM (no outbound API from buddy); buddy owns the graph, detectors, and finding surfacing. Ported from [slimemold](https://github.com/justinstimatze/slimemold) (Apache-2.0) by the original author, contributed here under MIT. Design rationale in `src/lib/reasoning/DESIGN.md`.
-- **`buddy_mode`** now takes orthogonal `voice` + `max` fields. Legacy `mode` field kept as a soft-deprecated alias; emits a note when used.
-- **`buddy_forget`** — purge stored reasoning data. `scope: 'session' | 'all'`. Accepts `session_id` (from `buddy_reasoning_status`) or `cwd` hint.
-- **`buddy_reasoning_status`** — inspect stored claims, session breakdown, finding history, runtime counters.
-- **Doctor checks** — two new reasoning-layer checks: `reasoning.max` (warns when max is on but host isn't sending claims, persisted across server restart) and `reasoning.storage` (claim count + oldest-claim age).
-- **Stressed voice per species** — second voice kernel used when max mode surfaces a finding, pulled forward from effigy-lite.
+- **Max mode** (PR #87 by [@justinstimatze](https://github.com/justinstimatze)) — an opt-in anti-sycophancy layer. AI coding assistants are yes-men; max mode is the one feature that pushes back — gently, in your buddy's voice.
+
+  Max mode watches your coding sessions and spots 6 patterns:
+
+  **Dark nudges** (risky assumptions):
+  - 🧱 **Load-Bearing Vibes** — you're building on top of a guess nobody checked
+  - 🔗 **Unchallenged Chain** — 4+ reasoning steps with zero pushback
+  - 🪞 **Echo Chamber** — you and the AI are just agreeing with each other
+
+  **Bright nudges** (quiet wins):
+  - ✅ **Well-Sourced Load Bearer** — you built on solid, verified ground
+  - 💪 **Productive Stress Test** — someone pushed back and the idea survived
+  - 🌱 **Grounded Premise Adopted** — you started with a real fact and it became foundational
+
+  Enable with `buddy_mode max=true`. ~500-1000 extra tokens per observe. Default calls unaffected.
+
+  Ported from [slimemold](https://github.com/justinstimatze/slimemold) (Apache-2.0) by the original author, contributed under MIT.
+
+- **`buddy_mode`** now takes orthogonal `voice` + `max` fields. Legacy `mode` field kept with a deprecation note.
+- **`buddy_forget`** — purge stored reasoning data (`session` or `all`).
+- **`buddy_reasoning_status`** — inspect stored claims, sessions, finding history.
+- **4 new doctor checks** for the reasoning layer (max mode status, storage health, workspace resolution, quality monitor).
+- **Stressed voice per species** — second voice kernel used when max mode surfaces a finding.
+- **665 tests** (from 509 baseline). New coverage for detectors, pipeline, sanitizer, graph cache, workspace isolation, tone linting, and performance benchmarks.
 
 ### Privacy
-Max mode stores extracted claim snippets (≤240 chars each, plaintext) in `~/.buddy/buddy.db`. Snippets never leave your machine — buddy has no network code. Sessions older than 30 days prune on server startup. Purge manually with `buddy_forget`.
+Max mode stores claim snippets (240 chars each, plaintext) in `~/.buddy/buddy.db`. Nothing leaves your machine. Sessions auto-prune after 30 days. Purge manually with `buddy_forget`.
 
-### Tool surface
-- `buddy_mode` takes `voice` (backseat/skillcoach/both) + `max` (boolean), orthogonal. Legacy `mode` field still accepted with a deprecation note.
-- `buddy_forget` accepts `scope: 'session'|'all'`, `session_id` (explicit id from `buddy_reasoning_status`), or `cwd` hint.
-- `buddy_observe` accepts `claims`, `edges`, and `cwd` in max mode. Response includes `sessionId` when max mode is on, so callers can correlate writes with `buddy_reasoning_status` output.
+### Safety
+- Max mode is strictly additive — pipeline failures fall through to a normal reaction
+- Claim text sanitized for prompt injection (chat-template markers, fenced code, role tags, unicode lookalikes)
+- `PRAGMA foreign_keys = ON` now enforced on the shared connection for proper CASCADE behavior
 
-### Safety invariants
-- Max mode is strictly additive — the `buddy_observe` pipeline is wrapped in try/catch; any failure falls through to a normal reaction.
-- Reasoning tables use `FOREIGN KEY(companion_id) REFERENCES companions(id) ON DELETE CASCADE` for companion-scoped state; workspace-scoped state (claims/edges) deliberately persists across respawn.
-- Claim text sanitizer strips structural prompt-injection vectors (chat-template markers, fenced code, markdown headers, XML-ish role tags, unicode-lookalike role markers across ASCII/Greek/Cyrillic/full-width). Scope is "structural break prevention," not adversarial robustness.
+### Upgrade
+Re-run the installer:
+```bash
+# macOS/Linux
+curl -fsSL https://raw.githubusercontent.com/fiorastudio/buddy/master/install.sh | bash
+
+# Windows
+irm https://raw.githubusercontent.com/fiorastudio/buddy/master/install.ps1 | iex
+```
 
 ## [1.0.2] - 2026-04-17
 
