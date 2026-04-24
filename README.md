@@ -137,12 +137,20 @@ AI coding assistants are yes-men. They agree with everything you say. Max mode i
 
 Think of it as: **Buddy is the friend who says "are you sure about that?" before you push to production at 2 AM.**
 
-```
-buddy_mode max=true     # turn it on
-buddy_mode max=false    # turn it off
+Buddy has two independent settings you control separately:
+
+```bash
+# Voice — how buddy reacts (personality, code feedback, or both)
+buddy_mode voice=backseat      # personality reactions only
+buddy_mode voice=skillcoach    # code feedback only
+buddy_mode voice=both          # both (default)
+
+# Max — structural reasoning analysis (on or off)
+buddy_mode max=true            # turn on reasoning analysis
+buddy_mode max=false           # turn it off (default)
 ```
 
-Voice mode (`backseat` / `skillcoach` / `both`) and max mode are independent — set them separately.
+Mix and match — any voice works with max on or off.
 
 ### How it works (the Lego version)
 
@@ -466,7 +474,7 @@ These stay tucked away by default, but Buddy exposes a real MCP surface for comp
 | `buddy_mute` | Pause reactions |
 | `buddy_unmute` | Resume reactions |
 | `buddy_respawn` | Reset and start over |
-| `buddy_mode` | Change interaction modes. Voice: `backseat` (personality only), `skillcoach` (code feedback), `both` (default). Max: `buddy_mode max=true` turns on structural reasoning — buddy notices when claims are load-bearing or well-sourced, and weaves the observation into its in-character reaction. |
+| `buddy_mode` | Set voice and max independently. `buddy_mode voice=skillcoach` for code feedback, `buddy_mode max=true` for reasoning analysis. See [Max Mode](#max-mode). |
 | `buddy_forget` | Purge stored reasoning data. Scope `session` (default, current workspace/day) or `all`. |
 | `buddy_reasoning_status` | Inspect what max mode has stored — claim count, session breakdown, finding history. |
 
@@ -571,17 +579,47 @@ Claude Code / Cursor sessions that use Sonnet 4.6 turn on [prompt caching](https
 | OpenAI GPT-5.4 mini | $0.75 | $0.075 | ~$0.0010 | ~$0.00010 | ~$0.0019 |
 | Gemini 2.5 Flash (Vertex, standard tier) | $0.30 | $0.03 | ~$0.00041 | ~$0.000041 | ~$0.00077 |
 
-**Per-observe cost by mode:**
+**Per-observe cost by voice mode:**
 
-Buddy has three observer modes that control how your companion reacts to completed work:
+**Voice** controls how buddy reacts. **Max** controls whether reasoning analysis is on. They're independent:
+
+```bash
+buddy_mode voice=backseat      # personality only
+buddy_mode voice=skillcoach    # code feedback only
+buddy_mode voice=both          # both (default)
+buddy_mode max=true            # reasoning analysis on
+buddy_mode max=false           # reasoning analysis off (default)
+```
+
+| Voice | Max | What you get | Tokens per observe |
+|-------|-----|-------------|-------------------|
+| `backseat` | off | Personality reactions only | ~150–300 |
+| `backseat` | on | Personality + reasoning observations | ~650–1,300 |
+| `skillcoach` | off | Code feedback only | ~300–500 |
+| `skillcoach` | on | Code feedback + reasoning observations | ~800–1,500 |
+| `both` | off | Personality + code feedback **(default)** | ~400–600 |
+| `both` | on | The full experience | ~900–1,600 |
 
 Each `buddy_observe` call sends a short prompt to the host LLM (~100–150 incremental input tokens for the tool-call payload — separate from the static overhead above which is already cached) and receives a response. Total round-trip per call:
 
-| Mode | What it does | Input tokens | Output tokens | Total per call | Typical session (10–15 calls) |
-|------|-------------|-------------|--------------|----------------|-------------------------------|
+**Base cost (max mode off):**
+
+| Voice | What it does | Input tokens | Output tokens | Total per call | Typical session (10–15 calls) |
+|-------|-------------|-------------|--------------|----------------|-------------------------------|
 | **Backseat** | Personality-driven reactions only. Short, fun, no code suggestions. | ~100–150 | ~50–150 | ~150–300 | ~1,500–4,500 |
 | **Skillcoach** | One specific, actionable code observation. Real technical feedback, in character. | ~100–150 | ~200–350 | ~300–500 | ~3,000–7,500 |
 | **Both** | Personality reaction + code observation. Capped at 3 sentences. | ~100–150 | ~300–450 | ~400–600 | ~4,000–9,000 |
+
+**Max mode overhead (added on top of any voice mode):**
+
+| Component | Tokens | Notes |
+|-----------|--------|-------|
+| Extraction schema | ~200–300 | Tells the host LLM how to extract claims and edges |
+| Recent claims context | ~200–500 | Last 10 claims from the session, so the host knows what's already in the graph |
+| Finding block (when one fires) | ~100–200 | Detector result + phrasing guidance for the buddy's reaction |
+| **Total max mode overhead** | **~500–1000** | Added per `buddy_observe` call when max is on |
+
+So `voice=both, max=on` costs ~900–1,600 tokens per observe — roughly double `both` mode alone. `voice=backseat, max=on` costs ~650–1,300 per observe.
 
 **Template fallback reactions** are keyword-matched locally and cost **zero tokens**. When your summary contains a recognized keyword (e.g. "bug", "refactor", "deploy"), Buddy picks a pre-written reaction template from its local library instead of asking the LLM. The speech bubble you see is this template — the LLM prompt is included in the JSON metadata for clients that want richer AI-generated reactions, but the immediate visual response is always free.
 
@@ -594,21 +632,21 @@ No. All responses are generated by the host LLM already running in your session 
 Even on raw API usage, Buddy's spend is measured in tenths of a cent because it reuses the same session as your AI terminal.
 
 **Anthropic Claude Sonnet 4.6 ($3 input / $15 output per MTok):**
-- **Backseat mode**, 15 calls/session: ~$0.002–$0.005
-- **Skillcoach mode**, 15 calls/session: ~$0.005–$0.010
-- **Both mode**, 15 calls/session: ~$0.007–$0.012
+- **backseat, max=off**, 15 calls: ~$0.002–$0.005
+- **both, max=off**, 15 calls: ~$0.007–$0.012
+- **both, max=on**, 15 calls: ~$0.015–$0.025
 - **Static overhead:** ~$0.004 on turn 1, ~$0.0004 on cached turns (≈$0.0077 across 10 turns — see table above)
 
 **OpenAI GPT-5.4 mini ($0.75 input / $4.50 output per MTok):**
-- **Backseat mode**, 15 calls/session: ~$0.0006–$0.0015
-- **Skillcoach mode**, 15 calls/session: ~$0.0015–$0.0030
-- **Both mode**, 15 calls/session: ~$0.0021–$0.0036
+- **backseat, max=off**, 15 calls: ~$0.0006–$0.0015
+- **both, max=off**, 15 calls: ~$0.0021–$0.0036
+- **both, max=on**, 15 calls: ~$0.0045–$0.0075
 - **Static overhead:** ≈$0.0010 on turn 1, ≈$0.00010 on cached turns (~$0.0019 for 10 turns)
 
 **Gemini 2.5 Flash (Vertex standard; $0.30 input / $2.50 output per MTok):**
-- **Backseat mode**, 15 calls/session: ~$0.0003–$0.00075
-- **Skillcoach mode**, 15 calls/session: ~$0.00075–$0.0015
-- **Both mode**, 15 calls/session: ~$0.00105–$0.0018
+- **backseat, max=off**, 15 calls: ~$0.0003–$0.00075
+- **both, max=off**, 15 calls: ~$0.00105–$0.0018
+- **both, max=on**, 15 calls: ~$0.0022–$0.0037
 - **Static overhead:** ≈$0.00041 on turn 1, ≈$0.000041 on cached turns (~$0.00077 for 10 turns)
 
 Need it even cheaper? GPT-5.4 nano drops to $0.20 / $1.25 per MTok, and Gemini 2.5 Flash Lite is $0.10 / $0.40 — both keep Buddy well under a tenth of a cent per interaction.
@@ -617,11 +655,12 @@ For comparison, a single complex coding prompt ("refactor this module") typicall
 
 ### Will this affect my Claude Pro/Max limits?
 
-Negligibly. Pro/Max plans are subscription-based — no per-token charges. Usage limits are based on a rolling 5-hour window. Even in **both** mode with heavy use, Buddy adds <5% to your token throughput.
+Negligibly. Pro/Max plans are subscription-based — no per-token charges. Usage limits are based on a rolling 5-hour window. Even with `voice=both, max=on` (the most expensive combo), Buddy adds <10% to your token throughput. With max off, it's <5%.
 
 ### Can I reduce token usage?
 
-- Use **backseat mode** for lowest cost (~150 tokens/call)
+- Use **backseat voice** for lowest cost: `buddy_mode voice=backseat` (~150 tokens/call)
+- Turn **max mode off**: `buddy_mode max=false` to drop ~500-1000 tokens per observe
 - `buddy_mute` pauses reactions entirely during token-intensive work
 - Template reactions fire on keyword matches with zero token cost
 - The observer only runs when you call `buddy_observe` — nothing runs in the background

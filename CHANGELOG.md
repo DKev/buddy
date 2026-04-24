@@ -23,12 +23,15 @@ All notable changes to this project will follow [Semantic Versioning](https://se
 
   Ported from [slimemold](https://github.com/justinstimatze/slimemold) (Apache-2.0) by the original author, contributed under MIT.
 
-- **`buddy_mode`** now takes orthogonal `voice` + `max` fields. Legacy `mode` field kept with a deprecation note.
+- **`buddy_mode`** now has two independent settings:
+  - `buddy_mode voice=backseat` / `skillcoach` / `both` — controls reaction style
+  - `buddy_mode max=true` / `false` — controls reasoning analysis (default: off)
+  - Any combination works. The old `mode` field is still accepted as a deprecated alias for `voice`.
 - **`buddy_forget`** — purge stored reasoning data (`session` or `all`).
 - **`buddy_reasoning_status`** — inspect stored claims, sessions, finding history.
 - **4 new doctor checks** for the reasoning layer (max mode status, storage health, workspace resolution, quality monitor).
 - **Stressed voice per species** — second voice kernel used when max mode surfaces a finding.
-- **665 tests** (from 509 baseline). New coverage for detectors, pipeline, sanitizer, graph cache, workspace isolation, tone linting, and performance benchmarks.
+- **721 tests** (from 509 baseline). New coverage for detectors, pipeline, sanitizer, graph cache, workspace isolation, tone linting, and performance benchmarks.
 
 ### Privacy
 Max mode stores claim snippets (240 chars each, plaintext) in `~/.buddy/buddy.db`. Nothing leaves your machine. Sessions auto-prune after 30 days. Purge manually with `buddy_forget`.
