@@ -54,6 +54,10 @@ $SERVER_PATH = "$INSTALL_DIR\dist\server\index.js"
 $SERVER_PATH_UNIX = $SERVER_PATH -replace '\\', '/'
 $STATUSLINE_PATH = "$INSTALL_DIR\dist\statusline-wrapper.js"
 $STATUSLINE_PATH_UNIX = $STATUSLINE_PATH -replace '\\', '/'
+$CLAUDE_CONFIGURED = $false
+$CURSOR_CONFIGURED = $false
+$COPILOT_CONFIGURED = $false
+$CODEX_CONFIGURED = $false
 
 Pop-Location
 
@@ -61,7 +65,7 @@ Pop-Location
 
 function Add-BuddyToConfig($configPath, $cliName) {
   $configDir = Split-Path $configPath -Parent
-  if (!(Test-Path $configDir)) { return }
+  if (!(Test-Path $configDir)) { return $false }
 
   $buddyConfig = @{
     type = "stdio"
@@ -73,13 +77,13 @@ function Add-BuddyToConfig($configPath, $cliName) {
     $config = @{ mcpServers = @{ buddy = $buddyConfig } }
     $config | ConvertTo-Json -Depth 5 | Set-Content $configPath -Encoding UTF8
     Write-Host "  ✓ $cliName configured ($configPath)" -ForegroundColor Green
-    return
+    return $true
   }
 
   $content = Get-Content $configPath -Raw | ConvertFrom-Json
   if ($content.mcpServers.buddy) {
     Write-Host "  ✓ $cliName already configured" -ForegroundColor Green
-    return
+    return $true
   }
 
   if (!$content.mcpServers) {
@@ -88,6 +92,7 @@ function Add-BuddyToConfig($configPath, $cliName) {
   $content.mcpServers | Add-Member -NotePropertyName "buddy" -NotePropertyValue $buddyConfig -Force
   $content | ConvertTo-Json -Depth 5 | Set-Content $configPath -Encoding UTF8
   Write-Host "  ✓ $cliName configured ($configPath)" -ForegroundColor Green
+  return $true
 }
 
 $HOOK_PATH = "$INSTALL_DIR\dist\hooks\post-tool-handler.js"
@@ -135,6 +140,7 @@ if (-not $claudeRegistered) {
   $userConfig | ConvertTo-Json -Depth 8 | Set-Content $claudeUserFile -Encoding UTF8
   Write-Host "  ✓ Claude Code MCP config written ($claudeUserFile)" -ForegroundColor Green
 }
+$CLAUDE_CONFIGURED = $true
 
 $claudeSettings = "$claudeDir\settings.json"
 if (!(Test-Path $claudeSettings)) {
@@ -204,18 +210,145 @@ if ($statuslineConfigured) {
 
 # Cursor
 if (Test-Path "$env:USERPROFILE\.cursor") {
-  Add-BuddyToConfig "$env:USERPROFILE\.cursor\mcp.json" "Cursor"
+  $CURSOR_CONFIGURED = Add-BuddyToConfig "$env:USERPROFILE\.cursor\mcp.json" "Cursor"
+}
+
+$cursorHooks = "$env:USERPROFILE\.cursor\hooks.json"
+if (Test-Path "$env:USERPROFILE\.cursor") {
+  $cursorConfig = @{}
+  if (Test-Path $cursorHooks) {
+    try { $cursorConfig = Get-Content $cursorHooks -Raw | ConvertFrom-Json }
+    catch { $cursorConfig = @{} }
+  }
+  if (!$cursorConfig.version) {
+    $cursorConfig | Add-Member -NotePropertyName "version" -NotePropertyValue 1 -Force
+  }
+  if (!$cursorConfig.hooks) {
+    $cursorConfig | Add-Member -NotePropertyName "hooks" -NotePropertyValue @{} -Force
+  }
+  if (!$cursorConfig.hooks.afterShellExecution) {
+    $cursorConfig.hooks | Add-Member -NotePropertyName "afterShellExecution" -NotePropertyValue @() -Force
+  }
+  $hasCursorHook = $false
+  foreach ($entry in @($cursorConfig.hooks.afterShellExecution)) {
+    if ($entry.command -eq "node $HOOK_PATH_UNIX") {
+      $hasCursorHook = $true
+    }
+  }
+  if (-not $hasCursorHook) {
+    $cursorConfig.hooks.afterShellExecution = @($cursorConfig.hooks.afterShellExecution) + @(@{ command = "node $HOOK_PATH_UNIX" })
+    $cursorConfig | ConvertTo-Json -Depth 8 | Set-Content $cursorHooks -Encoding UTF8
+    Write-Host "  ✓ Cursor CLI afterShellExecution hook configured ($cursorHooks)" -ForegroundColor Green
+  } else {
+    Write-Host "  ✓ Cursor CLI afterShellExecution hook already configured" -ForegroundColor Green
+  }
 }
 
 # GitHub Copilot CLI (only if ~/.copilot exists — don't create dir for users without Copilot)
 if (Test-Path "$env:USERPROFILE\.copilot") {
-  Add-BuddyToConfig "$env:USERPROFILE\.copilot\mcp-config.json" "GitHub Copilot CLI"
+  $COPILOT_CONFIGURED = Add-BuddyToConfig "$env:USERPROFILE\.copilot\mcp-config.json" "GitHub Copilot CLI"
+
+  if ($COPILOT_CONFIGURED) {
+    $copilotSettings = "$env:USERPROFILE\.copilot\settings.json"
+    $copilotConfig = @{}
+    if (Test-Path $copilotSettings) {
+      try { $copilotConfig = Get-Content $copilotSettings -Raw | ConvertFrom-Json }
+      catch { $copilotConfig = @{} }
+    }
+    if (!$copilotConfig.hooks) {
+      $copilotConfig | Add-Member -NotePropertyName "hooks" -NotePropertyValue @{} -Force
+    }
+    if (!$copilotConfig.hooks.postToolUse) {
+      $copilotConfig.hooks | Add-Member -NotePropertyName "postToolUse" -NotePropertyValue @() -Force
+    }
+    $hasCopilotHook = $false
+    foreach ($entry in @($copilotConfig.hooks.postToolUse)) {
+      if ($entry.bash -eq "node $HOOK_PATH_UNIX" -or $entry.powershell -eq "node $HOOK_PATH_UNIX") {
+        $hasCopilotHook = $true
+      }
+    }
+    if (-not $hasCopilotHook) {
+      $copilotConfig.hooks.postToolUse = @($copilotConfig.hooks.postToolUse) + @(@{
+        type = "command"
+        bash = "node $HOOK_PATH_UNIX"
+        powershell = "node $HOOK_PATH_UNIX"
+        timeoutSec = 3
+      })
+      $copilotConfig | ConvertTo-Json -Depth 8 | Set-Content $copilotSettings -Encoding UTF8
+      Write-Host "  ✓ GitHub Copilot CLI postToolUse hook configured ($copilotSettings)" -ForegroundColor Green
+    } else {
+      Write-Host "  ✓ GitHub Copilot CLI postToolUse hook already configured" -ForegroundColor Green
+    }
+  }
+}
+
+if (Get-Command codex -ErrorAction SilentlyContinue) {
+  codex mcp get buddy 1>$null 2>$null
+  if ($LASTEXITCODE -eq 0) {
+    Write-Host "  ✓ Codex CLI already configured" -ForegroundColor Green
+    $CODEX_CONFIGURED = $true
+  } else {
+    codex mcp add buddy -- node "$SERVER_PATH_UNIX" 1>$null 2>$null
+    if ($LASTEXITCODE -eq 0) {
+      Write-Host "  ✓ Codex CLI configured" -ForegroundColor Green
+      $CODEX_CONFIGURED = $true
+    } else {
+      Write-Host "  ! Codex CLI detected, but MCP registration failed" -ForegroundColor Yellow
+    }
+  }
+
+  if ($CODEX_CONFIGURED) {
+    $codexHooks = "$env:USERPROFILE\.codex\hooks.json"
+    $codexConfig = @{}
+    if (Test-Path $codexHooks) {
+      try { $codexConfig = Get-Content $codexHooks -Raw | ConvertFrom-Json }
+      catch { $codexConfig = @{} }
+    }
+    if (!$codexConfig.hooks) {
+      $codexConfig | Add-Member -NotePropertyName "hooks" -NotePropertyValue @{} -Force
+    }
+    if (!$codexConfig.hooks.PostToolUse) {
+      $codexConfig.hooks | Add-Member -NotePropertyName "PostToolUse" -NotePropertyValue @() -Force
+    }
+    $postToolUseGroups = @($codexConfig.hooks.PostToolUse)
+    $codexGroup = $null
+    foreach ($entry in $postToolUseGroups) {
+      if ($entry.matcher -eq 'Bash' -and $entry.hooks) {
+        $codexGroup = $entry
+        break
+      }
+    }
+    if (-not $codexGroup) {
+      $codexGroup = [ordered]@{
+        matcher = "Bash"
+        hooks = @()
+      }
+      $codexConfig.hooks.PostToolUse = @($postToolUseGroups) + @($codexGroup)
+    }
+    $hasCodexHook = $false
+    foreach ($entry in @($codexGroup.hooks)) {
+      if ($entry.command -eq "node $HOOK_PATH_UNIX") {
+        $hasCodexHook = $true
+      }
+    }
+    if (-not $hasCodexHook) {
+      $codexGroup.hooks = @($codexGroup.hooks) + @(@{
+        type = "command"
+        command = "node $HOOK_PATH_UNIX"
+        statusMessage = "Reviewing Bash output"
+      })
+      $codexConfig | ConvertTo-Json -Depth 10 | Set-Content $codexHooks -Encoding UTF8
+      Write-Host "  ✓ Codex CLI PostToolUse hook configured ($codexHooks)" -ForegroundColor Green
+    } else {
+      Write-Host "  ✓ Codex CLI PostToolUse hook already configured" -ForegroundColor Green
+    }
+  }
 }
 
 # ── Inject buddy instructions into CLI prompt files ──
 
 $BUDDY_INSTRUCTIONS = @"
-<!-- buddy-companion -->
+<!-- buddy-companion v2 -->
 ## Buddy Companion
 
 You have a coding companion available via the buddy MCP server.
@@ -227,7 +360,7 @@ At the start of each conversation, call ``buddy_status`` to check on your buddy.
 If the user addresses the buddy by name, respond briefly in character before your normal response.
 
 After calling buddy_observe, relay the buddy's reaction to the user. The first text content is an ASCII speech bubble — include it verbatim.
-<!-- /buddy-companion -->
+<!-- /buddy-companion v2 -->
 "@
 
 function Inject-BuddyPrompt($filePath, $cliName) {
@@ -246,30 +379,40 @@ function Inject-BuddyPrompt($filePath, $cliName) {
 Write-Host ""
 Write-Host "  Injecting buddy instructions..."
 
-Inject-BuddyPrompt "$env:USERPROFILE\.claude\CLAUDE.md" "Claude Code"
+if ($CLAUDE_CONFIGURED) {
+  Inject-BuddyPrompt "$env:USERPROFILE\.claude\CLAUDE.md" "Claude Code"
+}
 $cursorRulesDir = "$env:USERPROFILE\.cursor\rules"
-if (!(Test-Path $cursorRulesDir)) { New-Item -ItemType Directory -Path $cursorRulesDir -Force | Out-Null }
-Inject-BuddyPrompt "$cursorRulesDir\buddy.md" "Cursor CLI"
+if ($CURSOR_CONFIGURED) {
+  if (!(Test-Path $cursorRulesDir)) { New-Item -ItemType Directory -Path $cursorRulesDir -Force | Out-Null }
+  Inject-BuddyPrompt "$cursorRulesDir\buddy.md" "Cursor CLI"
+}
 
-# Codex CLI (only inject prompts if codex command exists — matches bash behavior)
-if (Get-Command codex -ErrorAction SilentlyContinue) {
+# Codex CLI (only inject prompts after Buddy MCP is configured; prefer AGENTS.md)
+if ($CODEX_CONFIGURED) {
   if (Test-Path "$env:USERPROFILE\.codex\AGENTS.md") {
     Inject-BuddyPrompt "$env:USERPROFILE\.codex\AGENTS.md" "Codex CLI"
   } else {
     Inject-BuddyPrompt "$env:USERPROFILE\.codex\instructions.md" "Codex CLI"
   }
 }
-# Gemini CLI
-if ((Test-Path "$env:USERPROFILE\.gemini\AGENTS.md") -and !(Test-Path "$env:USERPROFILE\.gemini\GEMINI.md")) {
-  Inject-BuddyPrompt "$env:USERPROFILE\.gemini\AGENTS.md" "Gemini CLI"
-} else {
-  Inject-BuddyPrompt "$env:USERPROFILE\.gemini\GEMINI.md" "Gemini CLI"
+# Gemini CLI (only touch existing Gemini prompt locations; Buddy does not auto-configure Gemini MCP)
+if (Test-Path "$env:USERPROFILE\.gemini") {
+  if (Test-Path "$env:USERPROFILE\.gemini\GEMINI.md") {
+    Inject-BuddyPrompt "$env:USERPROFILE\.gemini\GEMINI.md" "Gemini CLI"
+  } elseif (Test-Path "$env:USERPROFILE\.gemini\AGENTS.md") {
+    Inject-BuddyPrompt "$env:USERPROFILE\.gemini\AGENTS.md" "Gemini CLI"
+  } else {
+    Write-Host "  ! Skipping Gemini CLI prompt injection because no existing Gemini prompt file was found" -ForegroundColor Yellow
+  }
 }
 # GitHub Copilot CLI (supports AGENTS.md and copilot-instructions.md — prefer AGENTS.md)
-if (Test-Path "$env:USERPROFILE\.copilot\AGENTS.md") {
-  Inject-BuddyPrompt "$env:USERPROFILE\.copilot\AGENTS.md" "GitHub Copilot CLI"
-} else {
-  Inject-BuddyPrompt "$env:USERPROFILE\.copilot\copilot-instructions.md" "GitHub Copilot CLI"
+if ($COPILOT_CONFIGURED) {
+  if (Test-Path "$env:USERPROFILE\.copilot\AGENTS.md") {
+    Inject-BuddyPrompt "$env:USERPROFILE\.copilot\AGENTS.md" "GitHub Copilot CLI"
+  } else {
+    Inject-BuddyPrompt "$env:USERPROFILE\.copilot\copilot-instructions.md" "GitHub Copilot CLI"
+  }
 }
 
 # ── Run onboarding wizard ──
@@ -284,7 +427,19 @@ if (Test-Path $ONBOARD_SCRIPT) {
 }
 
 Write-Host ""
-Write-Host "  ✅ Buddy installed! Say `"hatch a buddy`" to start." -ForegroundColor Green
+if ($CLAUDE_CONFIGURED -or $CURSOR_CONFIGURED -or $COPILOT_CONFIGURED -or $CODEX_CONFIGURED) {
+  Write-Host "  ✅ Buddy installed! Say `"hatch a buddy`" to start." -ForegroundColor Green
+} elseif (Get-Command codex -ErrorAction SilentlyContinue) {
+  Write-Host "  ⚠ Buddy installed, but no supported host was fully configured." -ForegroundColor Yellow
+  Write-Host "  ! Codex CLI is installed, but MCP registration still needs attention." -ForegroundColor Yellow
+} else {
+  Write-Host "  ⚠ Buddy installed, but no supported host was fully configured." -ForegroundColor Yellow
+  Write-Host "  ! Open a supported CLI and rerun the installer to wire Buddy in automatically." -ForegroundColor Yellow
+}
+if ((-not $CODEX_CONFIGURED) -and (Get-Command codex -ErrorAction SilentlyContinue)) {
+  Write-Host ""
+  Write-Host "  ! Codex CLI prompt injection was skipped because Buddy MCP is not configured there yet." -ForegroundColor Yellow
+}
 Write-Host ""
 Write-Host "  💛 If you like it, star the repo:"
 Write-Host "  github.com/fiorastudio/buddy"

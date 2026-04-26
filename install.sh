@@ -65,6 +65,10 @@ npm run build --quiet 2>/dev/null
 
 SERVER_PATH="$INSTALL_DIR/dist/server/index.js"
 CODEX_CONFIGURED=0
+HOOK_PATH="$INSTALL_DIR/dist/hooks/post-tool-handler.js"
+CLAUDE_CONFIGURED=0
+CURSOR_CONFIGURED=0
+COPILOT_CONFIGURED=0
 
 # ── Auto-configure MCP for detected CLIs ──
 
@@ -72,7 +76,6 @@ configure_claude_code() {
   local config_dir="$HOME/.claude"
   local settings_file="$config_dir/settings.json"
   local user_file="$HOME/.claude.json"
-  local hook_path="$INSTALL_DIR/dist/hooks/post-tool-handler.js"
   local stop_hook_path="$INSTALL_DIR/dist/hooks/stop-handler.js"
   local prompt_hook_path="$INSTALL_DIR/dist/hooks/prompt-handler.js"
   local statusline_command="node $INSTALL_DIR/dist/statusline-wrapper.js"
@@ -122,7 +125,7 @@ EOJS
   # Configure hook + statusline in a single settings.json write
   if command -v node &> /dev/null; then
     local settings_result
-    settings_result=$(CLAUDE_SETTINGS="$settings_file" HOOK_COMMAND="node $hook_path" STOP_HOOK_COMMAND="node $stop_hook_path" PROMPT_HOOK_COMMAND="node $prompt_hook_path" STATUSLINE_COMMAND="$statusline_command" node <<'EOJS'
+    settings_result=$(CLAUDE_SETTINGS="$settings_file" HOOK_COMMAND="node $HOOK_PATH" STOP_HOOK_COMMAND="node $stop_hook_path" PROMPT_HOOK_COMMAND="node $prompt_hook_path" STATUSLINE_COMMAND="$statusline_command" node <<'EOJS'
 const fs = require('fs');
 const settingsPath = process.env.CLAUDE_SETTINGS;
 const hookCommand = process.env.HOOK_COMMAND;
@@ -224,6 +227,96 @@ EOJS
   else
     echo -e "  ${YELLOW}!${NC} node not found — cannot configure hooks or statusline"
   fi
+
+  CLAUDE_CONFIGURED=1
+}
+
+configure_cursor_hooks() {
+  local config_file="$HOME/.cursor/hooks.json"
+
+  if [ ! -d "$HOME/.cursor" ]; then
+    return 0
+  fi
+
+  if ! command -v node &> /dev/null; then
+    echo -e "  ${YELLOW}!${NC} Cursor CLI: node not found, could not configure hooks"
+    return 1
+  fi
+
+  local result
+  result=$(CURSOR_HOOKS_FILE="$config_file" HOOK_COMMAND="node $HOOK_PATH" node <<'EOJS'
+const fs = require('fs');
+const path = process.env.CURSOR_HOOKS_FILE;
+const hookCommand = process.env.HOOK_COMMAND;
+let config = {};
+try { config = JSON.parse(fs.readFileSync(path, 'utf-8')); } catch {}
+if (!config.version) config.version = 1;
+if (!config.hooks || typeof config.hooks !== 'object') config.hooks = {};
+if (!Array.isArray(config.hooks.afterShellExecution)) config.hooks.afterShellExecution = [];
+const hooks = config.hooks.afterShellExecution;
+const hasHook = hooks.some(h => typeof h?.command === 'string' && h.command === hookCommand);
+if (!hasHook) {
+  hooks.push({ command: hookCommand });
+  fs.mkdirSync(require('path').dirname(path), { recursive: true });
+  fs.writeFileSync(path, JSON.stringify(config, null, 2));
+  process.stdout.write('updated');
+} else {
+  process.stdout.write('noop');
+}
+EOJS
+)
+
+  case "$result" in
+    updated) echo -e "  ${GREEN}✓${NC} Cursor CLI afterShellExecution hook configured ${DIM}($config_file)${NC}" ;;
+    *)       echo -e "  ${GREEN}✓${NC} Cursor CLI afterShellExecution hook already configured" ;;
+  esac
+}
+
+configure_copilot_hooks() {
+  local settings_file="$HOME/.copilot/settings.json"
+
+  if [ ! -d "$HOME/.copilot" ]; then
+    return 0
+  fi
+
+  if ! command -v node &> /dev/null; then
+    echo -e "  ${YELLOW}!${NC} GitHub Copilot CLI: node not found, could not configure hooks"
+    return 1
+  fi
+
+  local result
+  result=$(COPILOT_SETTINGS="$settings_file" BASH_COMMAND="node $HOOK_PATH" POWERSHELL_COMMAND="node $HOOK_PATH" node <<'EOJS'
+const fs = require('fs');
+const path = require('path');
+const settingsPath = process.env.COPILOT_SETTINGS;
+const bashCommand = process.env.BASH_COMMAND;
+const powershellCommand = process.env.POWERSHELL_COMMAND;
+let config = {};
+try { config = JSON.parse(fs.readFileSync(settingsPath, 'utf-8')); } catch {}
+if (!config.hooks || typeof config.hooks !== 'object') config.hooks = {};
+if (!Array.isArray(config.hooks.postToolUse)) config.hooks.postToolUse = [];
+const hooks = config.hooks.postToolUse;
+const hasHook = hooks.some(h => h?.bash === bashCommand || h?.powershell === powershellCommand);
+if (!hasHook) {
+  hooks.push({
+    type: 'command',
+    bash: bashCommand,
+    powershell: powershellCommand,
+    timeoutSec: 3,
+  });
+  fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+  fs.writeFileSync(settingsPath, JSON.stringify(config, null, 2));
+  process.stdout.write('updated');
+} else {
+  process.stdout.write('noop');
+}
+EOJS
+)
+
+  case "$result" in
+    updated) echo -e "  ${GREEN}✓${NC} GitHub Copilot CLI postToolUse hook configured ${DIM}($settings_file)${NC}" ;;
+    *)       echo -e "  ${GREEN}✓${NC} GitHub Copilot CLI postToolUse hook already configured" ;;
+  esac
 }
 
 
@@ -252,6 +345,7 @@ EOJSON
       " 2>/dev/null
     fi
     echo -e "  ${GREEN}✓${NC} Cursor configured ${DIM}($config_file)${NC}"
+    CURSOR_CONFIGURED=1
   fi
 }
 
@@ -285,6 +379,7 @@ EOJSON
       fi
     fi
     echo -e "  ${GREEN}✓${NC} GitHub Copilot CLI configured ${DIM}($config_file)${NC}"
+    COPILOT_CONFIGURED=1
   fi
 }
 
@@ -309,16 +404,69 @@ configure_codex() {
   return 1
 }
 
+configure_codex_hooks() {
+  local config_file="$HOME/.codex/hooks.json"
+
+  if [ "$CODEX_CONFIGURED" -ne 1 ]; then
+    return 0
+  fi
+
+  if ! command -v node &> /dev/null; then
+    echo -e "  ${YELLOW}!${NC} Codex CLI: node not found, could not configure hooks"
+    return 1
+  fi
+
+  local result
+  result=$(CODEX_HOOKS_FILE="$config_file" HOOK_COMMAND="node $HOOK_PATH" node <<'EOJS'
+const fs = require('fs');
+const path = require('path');
+const hooksPath = process.env.CODEX_HOOKS_FILE;
+const hookCommand = process.env.HOOK_COMMAND;
+let config = {};
+try { config = JSON.parse(fs.readFileSync(hooksPath, 'utf-8')); } catch {}
+if (!config.hooks || typeof config.hooks !== 'object') config.hooks = {};
+if (!Array.isArray(config.hooks.PostToolUse)) config.hooks.PostToolUse = [];
+const groups = config.hooks.PostToolUse;
+let group = groups.find(entry => entry?.matcher === 'Bash' && Array.isArray(entry?.hooks));
+if (!group) {
+  group = { matcher: 'Bash', hooks: [] };
+  groups.push(group);
+}
+const hasHook = group.hooks.some(h => typeof h?.command === 'string' && h.command === hookCommand);
+if (!hasHook) {
+  group.hooks.push({
+    type: 'command',
+    command: hookCommand,
+    statusMessage: 'Reviewing Bash output',
+  });
+  fs.mkdirSync(path.dirname(hooksPath), { recursive: true });
+  fs.writeFileSync(hooksPath, JSON.stringify(config, null, 2));
+  process.stdout.write('updated');
+} else {
+  process.stdout.write('noop');
+}
+EOJS
+)
+
+  case "$result" in
+    updated) echo -e "  ${GREEN}✓${NC} Codex CLI PostToolUse hook configured ${DIM}($config_file)${NC}" ;;
+    *)       echo -e "  ${GREEN}✓${NC} Codex CLI PostToolUse hook already configured" ;;
+  esac
+}
+
 echo ""
 echo "  Configuring MCP clients..."
 configure_claude_code
 configure_cursor
 configure_copilot
 configure_codex
+configure_cursor_hooks
+configure_copilot_hooks
+configure_codex_hooks
 
 # ── Inject buddy instructions into CLI prompt files ──
 
-BUDDY_INSTRUCTIONS='<!-- buddy-companion -->
+BUDDY_INSTRUCTIONS='<!-- buddy-companion v2 -->
 ## Buddy Companion
 
 You have a coding companion available via the buddy MCP server.
@@ -330,7 +478,7 @@ At the start of each conversation, call `buddy_status` to check on your buddy.
 If the user addresses the buddy by name, respond briefly in character before your normal response.
 
 After calling buddy_observe, relay the buddy'\''s reaction to the user. The first text content is an ASCII speech bubble — include it verbatim.
-<!-- /buddy-companion -->'
+<!-- /buddy-companion v2 -->'
 
 inject_prompt() {
   local file="$1"
@@ -353,11 +501,17 @@ inject_prompt() {
 
 echo ""
 echo "  Injecting buddy instructions..."
-inject_prompt "$HOME/.claude/CLAUDE.md" "Claude Code"
-mkdir -p "$HOME/.cursor/rules" 2>/dev/null
-inject_prompt "$HOME/.cursor/rules/buddy.md" "Cursor CLI"
 
-# Codex CLI (supports AGENTS.md and instructions.md — prefer AGENTS.md)
+if [ "$CLAUDE_CONFIGURED" -eq 1 ]; then
+  inject_prompt "$HOME/.claude/CLAUDE.md" "Claude Code"
+fi
+
+if [ "$CURSOR_CONFIGURED" -eq 1 ]; then
+  mkdir -p "$HOME/.cursor/rules" 2>/dev/null
+  inject_prompt "$HOME/.cursor/rules/buddy.md" "Cursor CLI"
+fi
+
+# Codex CLI (only inject prompts after Buddy MCP is configured; prefer AGENTS.md)
 if [ "$CODEX_CONFIGURED" -eq 1 ]; then
   if [ -f "$HOME/.codex/AGENTS.md" ]; then
     inject_prompt "$HOME/.codex/AGENTS.md" "Codex CLI"
@@ -368,18 +522,24 @@ else
   echo -e "  ${YELLOW}!${NC} Skipping Codex CLI prompt injection because Buddy MCP is not configured"
 fi
 
-# Gemini CLI (supports GEMINI.md and AGENTS.md — use whichever exists, prefer GEMINI.md)
-if [ -f "$HOME/.gemini/AGENTS.md" ] && [ ! -f "$HOME/.gemini/GEMINI.md" ]; then
-  inject_prompt "$HOME/.gemini/AGENTS.md" "Gemini CLI"
-else
-  inject_prompt "$HOME/.gemini/GEMINI.md" "Gemini CLI"
+# Gemini CLI (only touch existing Gemini prompt locations; Buddy does not auto-configure Gemini MCP)
+if [ -d "$HOME/.gemini" ]; then
+  if [ -f "$HOME/.gemini/GEMINI.md" ]; then
+    inject_prompt "$HOME/.gemini/GEMINI.md" "Gemini CLI"
+  elif [ -f "$HOME/.gemini/AGENTS.md" ]; then
+    inject_prompt "$HOME/.gemini/AGENTS.md" "Gemini CLI"
+  else
+    echo -e "  ${YELLOW}!${NC} Skipping Gemini CLI prompt injection because no existing Gemini prompt file was found"
+  fi
 fi
 
 # GitHub Copilot CLI (supports AGENTS.md and copilot-instructions.md — prefer AGENTS.md)
-if [ -f "$HOME/.copilot/AGENTS.md" ]; then
-  inject_prompt "$HOME/.copilot/AGENTS.md" "GitHub Copilot CLI"
-else
-  inject_prompt "$HOME/.copilot/copilot-instructions.md" "GitHub Copilot CLI"
+if [ "$COPILOT_CONFIGURED" -eq 1 ]; then
+  if [ -f "$HOME/.copilot/AGENTS.md" ]; then
+    inject_prompt "$HOME/.copilot/AGENTS.md" "GitHub Copilot CLI"
+  else
+    inject_prompt "$HOME/.copilot/copilot-instructions.md" "GitHub Copilot CLI"
+  fi
 fi
 
 # ── Run onboarding wizard ──
@@ -394,12 +554,20 @@ elif [ "$NO_ONBOARD" -eq 1 ]; then
 fi
 
 echo ""
-if [ "$CODEX_CONFIGURED" -eq 1 ] || ! command -v codex &> /dev/null; then
+if [ "$CLAUDE_CONFIGURED" -eq 1 ] || [ "$CURSOR_CONFIGURED" -eq 1 ] || [ "$COPILOT_CONFIGURED" -eq 1 ] || [ "$CODEX_CONFIGURED" -eq 1 ]; then
   echo -e "${GREEN}  ✅ Buddy installed! Say \"hatch a buddy\" to start.${NC}"
-  echo ""
-  echo -e "  💛 If you like it, star the repo:"
-  echo "  github.com/fiorastudio/buddy"
+elif command -v codex &> /dev/null; then
+  echo -e "${YELLOW}  ⚠ Buddy installed, but no supported host was fully configured.${NC}"
+  echo -e "  ${YELLOW}!${NC} Codex CLI is installed, but MCP registration still needs attention."
 else
-  echo -e "${YELLOW}  ⚠ Buddy installed, but Codex CLI still needs MCP configuration.${NC}"
+  echo -e "${YELLOW}  ⚠ Buddy installed, but no supported host was fully configured.${NC}"
+  echo -e "  ${YELLOW}!${NC} Open a supported CLI and rerun the installer to wire Buddy in automatically."
 fi
+if [ "$CODEX_CONFIGURED" -ne 1 ] && command -v codex &> /dev/null; then
+  echo ""
+  echo -e "  ${YELLOW}!${NC} Codex CLI prompt injection was skipped because Buddy MCP is not configured there yet."
+fi
+echo ""
+echo -e "  💛 If you like it, star the repo:"
+echo "  github.com/fiorastudio/buddy"
 echo ""

@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import { describe, it, expect } from 'vitest';
 import { runDiagnostics, formatReport, PROMPT_SENTINEL_V2 } from '../lib/doctor.js';
 
@@ -79,7 +80,7 @@ describe('Doctor — formatReport', () => {
     expect(report).toContain('COMPANION');
     expect(report).toContain('DATABASE');
     expect(report).toContain('STATUS FILE');
-    expect(report).toContain('CLAUDE CODE INTEGRATION');
+    expect(report).toContain('HOST INTEGRATION');
     expect(report).toContain('REASONING LAYER');
     expect(report).toContain('SUMMARY');
   });
@@ -101,6 +102,16 @@ describe('Doctor — formatReport', () => {
 describe('Doctor — sentinel constant', () => {
   it('exports the v2 sentinel string', () => {
     expect(PROMPT_SENTINEL_V2).toBe('buddy-companion v2');
+  });
+
+  it('keeps installer prompt markers aligned with the v2 sentinel', () => {
+    const installSh = readFileSync(new URL('../../install.sh', import.meta.url), 'utf-8');
+    const installPs1 = readFileSync(new URL('../../install.ps1', import.meta.url), 'utf-8');
+
+    expect(installSh).toContain('<!-- buddy-companion v2 -->');
+    expect(installSh).toContain('<!-- /buddy-companion v2 -->');
+    expect(installPs1).toContain('<!-- buddy-companion v2 -->');
+    expect(installPs1).toContain('<!-- /buddy-companion v2 -->');
   });
 });
 
@@ -141,7 +152,7 @@ describe('Doctor — failure paths', () => {
     expect(['ok', 'fail']).toContain(mcp!.status);
     if (mcp!.status === 'fail') {
       expect(mcp!.suggestion).toBeDefined();
-      expect(mcp!.suggestion).toContain('claude mcp add');
+      expect(mcp!.suggestion).toContain('install script');
     }
   });
 
