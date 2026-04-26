@@ -26,10 +26,14 @@ jobs:
           # 1. Load existing stats or initialize
           if [ -f "$STATS_FILE" ]; then
             BASELINE_UNIQUES=$(jq -r '.baselineUniques // 0' "$STATS_FILE")
-            DAILY_COUNTS=$(jq -c '.dailyCounts // {}' "$STATS_FILE")
+            BASELINE_CLONES=$(jq -r '.baselineClones // 0' "$STATS_FILE")
+            DAILY_UNIQUES=$(jq -c '.dailyCounts // {}' "$STATS_FILE")
+            DAILY_CLONES=$(jq -c '.dailyClones // {}' "$STATS_FILE")
           else
             BASELINE_UNIQUES=0
-            DAILY_COUNTS="{}"
+            BASELINE_CLONES=0
+            DAILY_UNIQUES="{}"
+            DAILY_CLONES="{}"
             mkdir -p .github/stats
           fi
 
@@ -39,33 +43,55 @@ jobs:
             TRAFFIC_DATA='{"clones":[]}'
           fi
           
-          # 3. Merge new data into dailyCounts using jq
-          NEW_DAILY_COUNTS=$(echo "$TRAFFIC_DATA" | jq -c --argjson existing "$DAILY_COUNTS" '
+          # 3. Merge new data into daily maps using jq
+          NEW_DAILY_UNIQUES=$(echo "$TRAFFIC_DATA" | jq -c --argjson existing "$DAILY_UNIQUES" '
             .clones | reduce .[] as $item ($existing; 
               .[$item.timestamp[0:10]] = $item.uniques
             )
           ')
+          NEW_DAILY_CLONES=$(echo "$TRAFFIC_DATA" | jq -c --argjson existing "$DAILY_CLONES" '
+            .clones | reduce .[] as $item ($existing; 
+              .[$item.timestamp[0:10]] = $item.count
+            )
+          ')
 
-          # 4. Recalculate totalUniques (Baseline + Sum of Daily Counts)
-          DAILY_SUM=$(echo "$NEW_DAILY_COUNTS" | jq '[.[]] | add // 0')
-          NEW_TOTAL_UNIQUES=$((BASELINE_UNIQUES + DAILY_SUM))
+          # 4. Recalculate totals (Baseline + Sum of Daily)
+          UNIQUES_SUM=$(echo "$NEW_DAILY_UNIQUES" | jq '[.[]] | add // 0')
+          CLONES_SUM=$(echo "$NEW_DAILY_CLONES" | jq '[.[]] | add // 0')
+          NEW_TOTAL_UNIQUES=$((BASELINE_UNIQUES + UNIQUES_SUM))
+          NEW_TOTAL_CLONES=$((BASELINE_CLONES + CLONES_SUM))
 
           # 5. Update the JSON file
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           jq -n \
-            --arg baseline "$BASELINE_UNIQUES" \
-            --arg total "$NEW_TOTAL_UNIQUES" \
+            --arg baselineUniques "$BASELINE_UNIQUES" \
+            --arg baselineClones "$BASELINE_CLONES" \
+            --arg totalUniques "$NEW_TOTAL_UNIQUES" \
+            --arg totalClones "$NEW_TOTAL_CLONES" \
             --arg time "$TIMESTAMP" \
-            --argjson daily "$NEW_DAILY_COUNTS" \
-            '{baselineUniques: ($baseline | tonumber), totalUniques: ($total | tonumber), lastUpdated: $time, dailyCounts: $daily}' \
-            > "$STATS_FILE"
+            --argjson dailyCounts "$NEW_DAILY_UNIQUES" \
+            --argjson dailyClones "$NEW_DAILY_CLONES" \
+            '{
+              baselineUniques: ($baselineUniques | tonumber),
+              baselineClones: ($baselineClones | tonumber),
+              totalUniques: ($totalUniques | tonumber),
+              totalClones: ($totalClones | tonumber),
+              lastUpdated: $time,
+              dailyCounts: $dailyCounts,
+              dailyClones: $dailyClones
+            }' > "$STATS_FILE"
 
-          echo "Updated totalUniques: $NEW_TOTAL_UNIQUES"
+          echo "Updated totalClones: $NEW_TOTAL_CLONES, totalUniques: $NEW_TOTAL_UNIQUES"
 
-          # 6. Update README.md with the new total
-          FORMATTED_TOTAL=$(printf "%'d" $NEW_TOTAL_UNIQUES)
-          RESCUED_TEXT="${FORMATTED_TOTAL}+"
+          # 6. Update README.md with both numbers
+          FORMATTED_CLONES=$(printf "%'d" $NEW_TOTAL_CLONES)
+          FORMATTED_UNIQUES=$(printf "%'d" $NEW_TOTAL_UNIQUES)
+          CLONES_TEXT="${FORMATTED_CLONES}+"
+          RESCUED_TEXT="${FORMATTED_UNIQUES}+"
 
+          # Update clones count
+          sed -i "s/[0-9,]*+ clones/${CLONES_TEXT} clones/" README.md
+          # Update buddies rescued/hatched count
           sed -i "s/\*\*🐾 [0-9,]*+ Buddies Rescued & Hatched · Our terminal companions are finally coming home\.\*\*/\*\*🐾 ${RESCUED_TEXT} Buddies Rescued \& Hatched · Our terminal companions are finally coming home.\*\*/" README.md
           sed -i "s|!\[Buddies Rescued\](https://img.shields.io/badge/buddies_rescued-[0-9,]*+-green?style=flat-square&logo=gitlfs)|!\[Buddies Rescued\](https://img.shields.io/badge/buddies_rescued-${RESCUED_TEXT}-green?style=flat-square\&logo=gitlfs)|" README.md
           sed -i "s/[0-9,]*+ buddies saved or hatched/${RESCUED_TEXT} buddies saved or hatched/" README.md
@@ -76,7 +102,7 @@ jobs:
           git add README.md "$STATS_FILE"
           
           if ! git diff --cached --quiet; then
-            git commit -m "chore: update buddies rescued stats to $RESCUED_TEXT [skip ci]"
+            git commit -m "chore: update stats — ${CLONES_TEXT} clones, ${RESCUED_TEXT} rescued [skip ci]"
             git push origin master
           else
             echo "No changes to commit."
