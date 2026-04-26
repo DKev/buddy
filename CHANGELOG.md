@@ -2,7 +2,7 @@
 
 All notable changes to this project will follow [Semantic Versioning](https://semver.org/).
 
-## [1.0.7] - 2026-04-26
+## [Unreleased] — targeting 1.0.7
 
 ### Added
 - **Non-Claude host hook auto-configuration** (PR #96): The installer now wires up Buddy's post-tool hook on Codex CLI, Cursor, and GitHub Copilot CLI automatically when those tools are detected — no manual config needed.
@@ -13,10 +13,15 @@ All notable changes to this project will follow [Semantic Versioning](https://se
 - **Host-aware prompt injection**: Buddy instructions are now only injected into prompt files for tools that are actually detected and configured. Claude Code, Cursor, Codex, Copilot, and Gemini each gate on their own `*_CONFIGURED` flag. Gemini injection is gated on `~/.gemini` directory existence and only writes to files that already exist (no spurious file creation).
 - **Host-agnostic `buddy_doctor`**: MCP registration, hook detection, and prompt injection checks now span all supported hosts. The report section is renamed from "CLAUDE CODE INTEGRATION" to "HOST INTEGRATION".
 - **Multi-host `post-tool-handler`**: The shared hook handler now accepts payload shapes from Codex, Cursor, and Copilot in addition to Claude Code (`tool_name`/`tool_response`, `toolName`/`toolResult`, and shell-style `command`/`stdout`/`stderr`/`exitCode` are all normalised).
+- **`buddy_doctor` install and path drift checks** (PR #97 by [@DKev](https://github.com/DKev)):
+  - `install.server` — detects when `~/.buddy/server/dist/server/index.js` is missing; returns `fail` with a targeted suggestion when `buddy.db` exists but the server build doesn't, `warn` otherwise.
+  - `mcp.paths` — reads all host MCP configs, verifies each configured entry path exists on disk, and warns when multiple hosts point to different Buddy builds (version drift).
+- **Clearer post-install and onboarding copy**: Success message and skip text now say "open the AI chat in your client" instead of the ambiguous "say 'hatch a buddy'" phrasing that read like a shell command.
 
 ### Fixed
 - Gemini CLI prompt injection no longer creates `~/.gemini/GEMINI.md` on machines that don't have Gemini installed.
 - Prompt injection for Claude Code, Cursor, and Copilot is now skipped (not just a no-op) when those hosts are not detected.
+- `project-root.test.ts` path assertions now use `realpathSync` to avoid false failures on macOS where `/var/` symlinks to `/private/var/`.
 
 ## [1.0.5] - 2026-04-23
 
