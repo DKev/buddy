@@ -149,6 +149,10 @@ buddy_mode max=false           # turn it off (default)
 
 Mix and match — any voice works with max on or off.
 
+<details>
+<summary><strong>🧠 &nbsp; How it works, dark &amp; bright nudges, and examples</strong></summary>
+<br>
+
 ### How it works (the Lego version)
 
 Imagine you're building a Lego castle with a friend. Your friend says "we should make the tower tall because tall towers look cool." You say "yeah totally" and start building it tall. Then you put a heavy dragon on top and... it falls over. Nobody stopped to ask "wait, can the base actually hold a tall tower with a dragon?"
@@ -205,6 +209,8 @@ With max mode (dark nudge):
 
 With max mode (bright nudge):
 > "Nice commit! 🐣 +10 XP — love that you actually tested the response format before building the parser on top of it. Solid foundation."
+
+</details>
 
 ### Under the hood (for the technically curious)
 
@@ -281,12 +287,17 @@ The installer:
 3. Auto-configures supported CLI clients when detected
 4. Injects Buddy instructions into supported terminal prompts where applicable
 
-Current integration details vary by host:
+<details>
+<summary><strong>⚙️ &nbsp; Per-client integration details</strong></summary>
+<br>
 
 - Claude Code: Buddy auto-configures MCP, statusline, and Claude hook wiring.
 - Codex CLI: Buddy configures MCP, writes a `PostToolUse` hook in `~/.codex/hooks.json`, and injects prompt instructions into `~/.codex/AGENTS.md` or `~/.codex/instructions.md`.
 - GitHub Copilot CLI: Buddy configures MCP, writes a user-level `postToolUse` hook in `~/.copilot/settings.json`, and injects prompt instructions into `~/.copilot/AGENTS.md` or `~/.copilot/copilot-instructions.md`.
 - Cursor CLI: Buddy configures MCP in `~/.cursor/mcp.json`, writes an `afterShellExecution` hook in `~/.cursor/hooks.json`, and injects prompt instructions into `~/.cursor/rules/buddy.md`.
+
+</details>
+
 If you prefer to install from source:
 
 ```bash
@@ -443,6 +454,10 @@ There is also a 1% shiny chance on any hatch.
 
 ## Roadmap
 
+<details>
+<summary><strong>🗺️ &nbsp; See what's planned</strong></summary>
+<br>
+
 - [x] **Max Mode with Slimemold integration** - Anti-Sycophancy Reasoning Auditor. personality + code + SlimeMold reasoning audit ([see below](#max-mode--structural-reasoning))
 - [ ] **Dream/memory system** — buddy_dream consolidation logic, pattern recognition from stored memories, memory-informed reactions
 - [ ] **Unlockable reactions** tied to leveling and longer-term interaction
@@ -455,6 +470,8 @@ There is also a 1% shiny chance on any hatch.
 - [ ] **Stat growth on level-up** — stats are currently frozen at birth. Each level-up should grant +1-2 points to a stat (peak stat grows faster, dump stat grows slower, cap at 100). Show stat growth in level-up notification ("WISDOM +2!")
 - [ ] **Multiple buddies support**: One unique buddy for each group member in a group-chat setting (e.g. Whatsapp group, telegram group, slack channels)
 - [ ] **Buddy Mastery Reward**: Reach Level 50 to unlock Priority Development for your custom species request.
+
+</details>
 
 
 
@@ -552,6 +569,10 @@ The current demo assets live in [`demo/`](demo):
 </details>
 
 ## FAQ
+
+<details>
+<summary><strong>🙋 &nbsp; Frequently Asked Questions</strong></summary>
+<br>
 
 ### How many tokens does Buddy use?
 
@@ -724,6 +745,8 @@ npm run build
 npm test
 npm start
 ```
+
+</details>
 
 </details>
 
