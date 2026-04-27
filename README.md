@@ -159,7 +159,7 @@ Imagine you're building a Lego castle with a friend. Your friend says "we should
 
 That's what insight mode catches. It watches your coding conversation and spots 6 patterns:
 
-### 3 Caution Nudges
+### 3 types of Caution Nudges
 
 **1. Load-Bearing Vibes** 🧱
 
@@ -179,7 +179,7 @@ You said A, which led to B, which led to C, which led to D — and nobody questi
 
 You say "let's use Redis." AI says "great idea, Redis is perfect." You say "yeah Redis is fast." AI says "absolutely, Redis is the way to go." Nobody brought up alternatives or tradeoffs. You're both just high-fiving in a mirror.
 
-### 3 Kudos Nudges
+### 3 types of Kudos Nudges
 
 **4. Well-Sourced Load Bearer** ✅
 
@@ -262,10 +262,6 @@ Everything stays local. Claim snippets (240 chars each, plaintext) live in `~/.b
 - `buddy_forget` — purge reasoning data (`session` or `all`)
 - `buddy_reasoning_status` — inspect stored claims, sessions, finding history
 
-### Attribution
-
-Insight mode is a port of [slimemold](https://github.com/justinstimatze/slimemold) by [@justinstimatze](https://github.com/justinstimatze) (Apache-2.0). Contributed to buddy under MIT. The standalone project has the full system with conditional gates and evaluation against reasoning benchmarks; buddy ships the foundational six detectors.
-
 ## Supported Clients
 
 | Client | Status |
@@ -275,7 +271,7 @@ Insight mode is a port of [slimemold](https://github.com/justinstimatze/slimemol
 | Gemini CLI | Supported via MCP |
 | GitHub Copilot CLI | Supported via MCP |
 | Cursor CLI | Supported via MCP |
-| Whatsapp | Supported via [Openclaw](https://github.com/openclaw/openclaw) or any claw variants |
+| Whatsapp & Telegram | Supported via [Openclaw](https://github.com/openclaw/openclaw) or any claw variants |
 | Other MCP-capable clients | Supported via MCP |
 
 ## Install Notes
@@ -762,19 +758,16 @@ Thank you to everyone who helped bring buddies back to life.
 
 Special thanks to [@gupta3681](https://github.com/gupta3681), [@kevinwei00](https://github.com/kevinwei00), [@whaterFalls](https://github.com/whaterFalls), [@longestpath](https://github.com/longestpath), and [@DKev](https://github.com/DKev) for their contributions.
 
-## Credits
+## ATTRIBUTION
 
 - Original buddy concept by [Anthropic](https://www.anthropic.com/) in [Claude Code](https://github.com/anthropics/claude-code) `v2.1.89` to `v2.1.96`
-- Inspired by [effigy](https://github.com/justinstimatze/effigy), [claude-buddy](https://github.com/1270011/claude-buddy), and [save-buddy](https://github.com/jrykn/save-buddy). 
+- Inspired by [effigy](https://github.com/justinstimatze/effigy), [claude-buddy](https://github.com/1270011/claude-buddy), and [save-buddy](https://github.com/jrykn/save-buddy).
+- Insight mode is a port of [slimemold](https://github.com/justinstimatze/slimemold) by [@justinstimatze](https://github.com/justinstimatze) (Apache-2.0). Contributed to buddy under MIT. The standalone project has the full system with conditional gates and evaluation against reasoning benchmarks; buddy ships the foundational six detectors.
 - Built with the [Model Context Protocol](https://modelcontextprotocol.io/)
 - Compatible with [claude-hud](https://github.com/jarrodwatts/claude-hud) by [@jarrodwatts](https://github.com/jarrodwatts) — Buddy's statusline renders side-by-side with HUD metrics
-
-Buddy also draws on publicly shared community research around the original companion system and how to preserve it with stable extension points.
-
 - [BonziClaude](https://github.com/zakarth/BonziClaude) by [@zakarth](https://github.com/zakarth) is an important technical reference point in the ecosystem, especially around reverse-engineering and documenting companion-system behavior.
 - [claude-buddy](https://github.com/1270011/claude-buddy) by [@1270011](https://github.com/1270011) diagnostic tooling (`bun run doctor`) and CLI bin pattern directly inspired our `buddy_doctor` tool. Its use of ANSI for lively animation also influenced how we implemented the animation for this project.
 - [openclaw](https://github.com/openclaw) inspired our seamless onboarding experience — the idea that install should "just work" with auto-detection, rescue, and zero-config setup across multiple CLIs.
-- Community research and discussion, including work shared on r/Anthropic, helped clarify endpoint behavior and preserve details that would otherwise have been lost.
 - Official [Claude Code](https://github.com/anthropics/claude-code) and [MCP](https://modelcontextprotocol.io/) documentation informed the portable integration approach: MCP server wiring, client configuration, and supported terminal integration surfaces.
 
 Buddy is an open-source project dedicated to keeping the terminal a little less lonely.
