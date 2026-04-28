@@ -21,6 +21,7 @@ All notable changes to this project will follow [Semantic Versioning](https://se
 ### Changed
 - **"Max mode" renamed to "insight mode"** — `buddy_mode insight=true` replaces `buddy_mode max=true`. The `max` parameter is still accepted as a deprecated alias.
 - **"Dark" and "bright" nudges renamed** to **"caution"** and **"kudos"** nudges — clearer labels for the two finding categories. Finding type values (`load_bearing_vibes`, etc.) are unchanged.
+- **Penguin demo animation refreshed**: The Buddy penguin sprite now uses a more expressive side-to-side dance loop with compact mirrored accent poses, and `demo/sprites/penguin.gif` has been regenerated to match the updated motion.
 - Version bumped to **1.0.7**.
 
 ### Upgrade notes
