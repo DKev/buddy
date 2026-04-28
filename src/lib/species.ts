@@ -595,12 +595,15 @@ function renderPenguinTemplateFrame(frame: PenguinMotionKeyframe): string[] {
   let body = '/(   )\\';
   if (frame.bodyYaw === -1 || frame.flapLeft === 'open') body = ' //  )/';
   if (frame.bodyYaw === 1 || frame.flapRight === 'open') body = '\\(  \\\\';
+  let base = "`- -'";
+  if (frame.bodyYaw === -1 || frame.flapLeft === 'open') base = "`- -/";
+  if (frame.bodyYaw === 1 || frame.flapRight === 'open') base = "\\- -'";
 
   return [
     padPenguinLine(`${headIndent}.---.`),
     padPenguinLine(`${faceIndent}${face}`),
     padPenguinLine(`${bodyIndent}${body}`),
-    padPenguinLine(`${baseIndent}\`- -'`),
+    padPenguinLine(`${baseIndent}${base}`),
   ];
 }
 
