@@ -126,11 +126,11 @@ The installer will guide you through onboarding:
 - **Feedback is personality-driven.** Reactions are shaped by species, stats, mood, and observer state, so the companion feels like a character rather than a random text generator.
 - **It survives client churn.** Because it is built on MCP and local state, your buddy can outlive terminal restarts and host-client changes.
 
-## Insight Mode
+## Guard Mode
 
-> *Insight mode watches your coding sessions for risky assumptions and quiet wins — and tells you about them in Buddy's voice.*
+> *Guard mode watches your coding sessions for risky assumptions and quiet wins — and tells you about them in Buddy's voice.*
 
-AI coding assistants are yes-men. They agree with everything you say. Insight mode is the one feature that pushes back — but gently, and in your buddy's voice, not a scary linter. It catches the moments where you and your AI are vibing too hard and nobody's checking if the code actually makes sense.
+AI coding assistants are yes-men. They agree with everything you say. Guard mode is the one feature that pushes back — but gently, and in your buddy's voice, not a scary linter. It catches the moments where you and your AI are vibing too hard and nobody's checking if the code actually makes sense.
 
 Think of it as: **Buddy is the friend who says "are you sure about that?" before you push to production at 2 AM.**
 
@@ -142,12 +142,12 @@ buddy_mode voice=backseat      # personality reactions only
 buddy_mode voice=skillcoach    # code feedback only
 buddy_mode voice=both          # both (default)
 
-# Insight — structural reasoning analysis (on or off)
-buddy_mode insight=true            # turn on reasoning analysis
-buddy_mode insight=false           # turn it off (default)
+# Guard — structural reasoning analysis (on or off)
+buddy_mode Guard=true            # turn on reasoning analysis
+buddy_mode Guard=false           # turn it off (default)
 ```
 
-Mix and match — any voice works with insight on or off.
+Mix and match — any voice works with Guard on or off.
 
 <details>
 <summary><strong>🧠 &nbsp; How it works, caution &amp; kudos nudges, and examples</strong></summary>
@@ -157,7 +157,7 @@ Mix and match — any voice works with insight on or off.
 
 Imagine you're building a Lego castle with a friend. Your friend says "we should make the tower tall because tall towers look cool." You say "yeah totally" and start building it tall. Then you put a heavy dragon on top and... it falls over. Nobody stopped to ask "wait, can the base actually hold a tall tower with a dragon?"
 
-That's what insight mode catches. It watches your coding conversation and spots 6 patterns:
+That's what guard mode catches. It watches your coding conversation and spots 6 patterns:
 
 ### 3 types of Caution Nudges
 
@@ -201,13 +201,13 @@ You cited real documentation, a real test result, or a real measurement — and 
 
 ### What it feels like in practice
 
-Without insight mode:
+Without Guard mode:
 > "Nice commit! 🐣 +10 XP"
 
-With insight mode (caution nudge):
+With Guard mode (caution nudge):
 > "Nice commit! 🐣 +10 XP — btw, that assumption about the API response format is holding up a lot of your logic. Might be worth a quick sanity check before you build more on it."
 
-With insight mode (kudos nudge):
+With Guard mode (kudos nudge):
 > "Nice commit! 🐣 +10 XP — love that you actually tested the response format before building the parser on top of it. Solid foundation."
 
 </details>
@@ -217,7 +217,7 @@ With insight mode (kudos nudge):
 <details>
 <summary>Knowledge graph, ontology, and performance details</summary>
 
-Insight mode builds a local directed graph from your conversation. The host LLM extracts claims — assertions tagged with an epistemic basis — and typed edges between them.
+Guard mode builds a local directed graph from your conversation. The host LLM extracts claims — assertions tagged with an epistemic basis — and typed edges between them.
 
 **Epistemic basis types:**
 
@@ -249,7 +249,7 @@ Insight mode builds a local directed graph from your conversation. The host LLM 
 
 Kudos nudges are slightly favored — after 3 caution findings with zero kudos, the next must be kudos.
 
-**Token cost:** ~500-1000 extra tokens per `buddy_observe` when on. Default calls with insight mode off are unaffected.
+**Token cost:** ~500-1000 extra tokens per `buddy_observe` when on. Default calls with guard mode off are unaffected.
 
 **Host compatibility:** Works best on Claude hosts where the extraction prompt is reliably honored. Run `buddy_doctor` to check.
 
@@ -454,7 +454,7 @@ There is also a 1% shiny chance on any hatch.
 <summary><strong>🗺️ &nbsp; See what's planned</strong></summary>
 <br>
 
-- [x] **Insight Mode with Slimemold integration** - Anti-Sycophancy Reasoning Auditor. personality + code + SlimeMold reasoning audit ([see below](#insight-mode--structural-reasoning))
+- [x] **Guard Mode with Slimemold integration** - Anti-Sycophancy Reasoning Auditor. personality + code + SlimeMold reasoning audit ([see below](#guard-mode--structural-reasoning))
 - [ ] **Dream/memory system** — buddy_dream consolidation logic, pattern recognition from stored memories, memory-informed reactions
 - [ ] **Unlockable reactions** tied to leveling and longer-term interaction
 - [ ] **Multilangauge Support**: 中文, espanol
@@ -490,9 +490,9 @@ These stay tucked away by default, but Buddy exposes a real MCP surface for comp
 | `buddy_mute` | Pause reactions |
 | `buddy_unmute` | Resume reactions |
 | `buddy_respawn` | Reset and start over |
-| `buddy_mode` | Set voice and insight independently. `buddy_mode voice=skillcoach` for code feedback, `buddy_mode insight=true` for reasoning analysis. See [Insight Mode](#insight-mode). |
+| `buddy_mode` | Set voice and Guard independently. `buddy_mode voice=skillcoach` for code feedback, `buddy_mode guard=true` for reasoning analysis. See [Guard Mode](#guard-mode). |
 | `buddy_forget` | Purge stored reasoning data. Scope `session` (default, current workspace/day) or `all`. |
-| `buddy_reasoning_status` | Inspect what insight mode has stored — claim count, session breakdown, finding history. |
+| `buddy_reasoning_status` | Inspect what guard mode has stored — claim count, session breakdown, finding history. |
 
 The most important loop is:
 
@@ -601,17 +601,17 @@ Claude Code / Cursor sessions that use Sonnet 4.6 turn on [prompt caching](https
 
 **Per-observe cost by voice mode:**
 
-**Voice** controls how buddy reacts. **Insight** controls whether reasoning analysis is on. They're independent:
+**Voice** controls how buddy reacts. **Guard** controls whether reasoning analysis is on. They're independent:
 
 ```bash
 buddy_mode voice=backseat      # personality only
 buddy_mode voice=skillcoach    # code feedback only
 buddy_mode voice=both          # both (default)
-buddy_mode insight=true            # reasoning analysis on
-buddy_mode insight=false           # reasoning analysis off (default)
+buddy_mode guard=true            # reasoning analysis on
+buddy_mode guard=false           # reasoning analysis off (default)
 ```
 
-| Voice | Insight | What you get | Tokens per observe |
+| Voice | Guard | What you get | Tokens per observe |
 |-------|-----|-------------|-------------------|
 | `backseat` | off | Personality reactions only | ~150–300 |
 | `backseat` | on | Personality + reasoning observations | ~650–1,300 |
@@ -622,7 +622,7 @@ buddy_mode insight=false           # reasoning analysis off (default)
 
 Each `buddy_observe` call sends a short prompt to the host LLM (~100–150 incremental input tokens for the tool-call payload — separate from the static overhead above which is already cached) and receives a response. Total round-trip per call:
 
-**Base cost (insight mode off):**
+**Base cost (Guard mode off):**
 
 | Voice | What it does | Input tokens | Output tokens | Total per call | Typical session (10–15 calls) |
 |-------|-------------|-------------|--------------|----------------|-------------------------------|
@@ -630,16 +630,16 @@ Each `buddy_observe` call sends a short prompt to the host LLM (~100–150 incre
 | **Skillcoach** | One specific, actionable code observation. Real technical feedback, in character. | ~100–150 | ~200–350 | ~300–500 | ~3,000–7,500 |
 | **Both** | Personality reaction + code observation. Capped at 3 sentences. | ~100–150 | ~300–450 | ~400–600 | ~4,000–9,000 |
 
-**Insight mode overhead (added on top of any voice mode):**
+**Guard mode overhead (added on top of any voice mode):**
 
 | Component | Tokens | Notes |
 |-----------|--------|-------|
 | Extraction schema | ~200–300 | Tells the host LLM how to extract claims and edges |
 | Recent claims context | ~200–500 | Last 10 claims from the session, so the host knows what's already in the graph |
 | Finding block (when one fires) | ~100–200 | Detector result + phrasing guidance for the buddy's reaction |
-| **Total insight mode overhead** | **~500–1000** | Added per `buddy_observe` call when insight is on |
+| **Total guard mode overhead** | **~500–1000** | Added per `buddy_observe` call when guard is on |
 
-So `voice=both, insight=on` costs ~900–1,600 tokens per observe — roughly double `both` mode alone. `voice=backseat, insight=on` costs ~650–1,300 per observe.
+So `voice=both, guard=on` costs ~900–1,600 tokens per observe — roughly double `both` mode alone. `voice=backseat, guard=on` costs ~650–1,300 per observe.
 
 **Template fallback reactions** are keyword-matched locally and cost **zero tokens**. When your summary contains a recognized keyword (e.g. "bug", "refactor", "deploy"), Buddy picks a pre-written reaction template from its local library instead of asking the LLM. The speech bubble you see is this template — the LLM prompt is included in the JSON metadata for clients that want richer AI-generated reactions, but the immediate visual response is always free.
 
@@ -652,21 +652,21 @@ No. All responses are generated by the host LLM already running in your session 
 Even on raw API usage, Buddy's spend is measured in tenths of a cent because it reuses the same session as your AI terminal.
 
 **Anthropic Claude Sonnet 4.6 ($3 input / $15 output per MTok):**
-- **backseat, insight=off**, 15 calls: ~$0.002–$0.005
-- **both, insight=off**, 15 calls: ~$0.007–$0.012
-- **both, insight=on**, 15 calls: ~$0.015–$0.025
+- **backseat, guard=off**, 15 calls: ~$0.002–$0.005
+- **both, guard=off**, 15 calls: ~$0.007–$0.012
+- **both, guard=on**, 15 calls: ~$0.015–$0.025
 - **Static overhead:** ~$0.004 on turn 1, ~$0.0004 on cached turns (≈$0.0077 across 10 turns — see table above)
 
 **OpenAI GPT-5.4 mini ($0.75 input / $4.50 output per MTok):**
-- **backseat, insight=off**, 15 calls: ~$0.0006–$0.0015
-- **both, insight=off**, 15 calls: ~$0.0021–$0.0036
-- **both, insight=on**, 15 calls: ~$0.0045–$0.0075
+- **backseat, guard=off**, 15 calls: ~$0.0006–$0.0015
+- **both, guard=off**, 15 calls: ~$0.0021–$0.0036
+- **both, guard=on**, 15 calls: ~$0.0045–$0.0075
 - **Static overhead:** ≈$0.0010 on turn 1, ≈$0.00010 on cached turns (~$0.0019 for 10 turns)
 
 **Gemini 2.5 Flash (Vertex standard; $0.30 input / $2.50 output per MTok):**
-- **backseat, insight=off**, 15 calls: ~$0.0003–$0.00075
-- **both, insight=off**, 15 calls: ~$0.00105–$0.0018
-- **both, insight=on**, 15 calls: ~$0.0022–$0.0037
+- **backseat, guard=off**, 15 calls: ~$0.0003–$0.00075
+- **both, guard=off**, 15 calls: ~$0.00105–$0.0018
+- **both, guard=on**, 15 calls: ~$0.0022–$0.0037
 - **Static overhead:** ≈$0.00041 on turn 1, ≈$0.000041 on cached turns (~$0.00077 for 10 turns)
 
 Need it even cheaper? GPT-5.4 nano drops to $0.20 / $1.25 per MTok, and Gemini 2.5 Flash Lite is $0.10 / $0.40 — both keep Buddy well under a tenth of a cent per interaction.
@@ -675,44 +675,44 @@ For comparison, a single complex coding prompt ("refactor this module") typicall
 
 ### Will this affect my Claude Pro/Max limits?
 
-Negligibly. Pro/Max plans are subscription-based — no per-token charges. Usage limits are based on a rolling 5-hour window. Even with `voice=both, insight=on` (the most expensive combo), Buddy adds <10% to your token throughput. With insight off, it's <5%.
+Negligibly. Pro/Max plans are subscription-based — no per-token charges. Usage limits are based on a rolling 5-hour window. Even with `voice=both, guard=on` (the most expensive combo), Buddy adds <10% to your token throughput. With guard off, it's <5%.
 
 ### Can I reduce token usage?
 
 - Use **backseat voice** for lowest cost: `buddy_mode voice=backseat` (~150 tokens/call)
-- Turn **insight mode off**: `buddy_mode insight=false` to drop ~500-1000 tokens per observe
+- Turn **guard mode off**: `buddy_mode guard=false` to drop ~500-1000 tokens per observe
 - `buddy_mute` pauses reactions entirely during token-intensive work
 - Template reactions fire on keyword matches with zero token cost
 - The observer only runs when you call `buddy_observe` — nothing runs in the background
 
-### What's "insight mode"?
+### What's "guard mode"?
 
-Insight mode is an optional upgrade: buddy notices structural patterns in the
+Guard mode is an optional upgrade: buddy notices structural patterns in the
 reasoning during a session — assumptions that are quietly holding up multiple
 decisions, long chains nobody has stress-tested, grounded premises the
 assistant is building on — and weaves the observation into its in-character
 reaction. A high-WISDOM mushroom will name the pattern earnestly; a high-SNARK
 rabbit will tease you about it. Same observation, different species voice.
 
-Turn it on with `buddy_mode insight=true`. Turn it off with `buddy_mode insight=false`.
+Turn it on with `buddy_mode guard=true`. Turn it off with `buddy_mode guard=false`.
 The reasoning layer is a light port of
 [slimemold](https://github.com/justinstimatze/slimemold) — the standalone
 project has the full system with state, conditional gates, and evaluation
 against reasoning benchmarks; buddy ships the foundational detectors.
 
-Insight mode stores extracted claim snippets (≤240 chars each) locally in
+Guard mode stores extracted claim snippets (≤240 chars each) locally in
 `~/.buddy/buddy.db` as plaintext SQLite. Snippets never leave your machine —
 buddy has no network code. Run `buddy_forget` to purge claims (scope `session`
 for the current workspace/day, or `all` for everything). Run
-`buddy_reasoning_status` to see what's stored. Insight mode relies on the host
+`buddy_reasoning_status` to see what's stored. guard mode relies on the host
 LLM to extract claims each turn; it works best on Claude hosts (Claude Code,
 Claude Desktop) and may be inert on hosts that don't honor the extraction
 prompt — `buddy_doctor` surfaces a warning if that's happening.
 
-**Token cost:** insight mode adds ~500-1000 tokens to every `buddy_observe`
+**Token cost:** guard mode adds ~500-1000 tokens to every `buddy_observe`
 prompt (extraction schema + recent-claims list + finding block when one
-fires). Default `buddy_observe` calls are unaffected. Turn insight off with
-`buddy_mode insight=false` to return to the base-mode token footprint.
+fires). Default `buddy_observe` calls are unaffected. Turn guard off with
+`buddy_mode guard=false` to return to the base-mode token footprint.
 
 ### Does Buddy read my whole codebase?
 
@@ -720,7 +720,7 @@ No. Buddy mainly reacts to short summaries you pass through tools like `buddy_ob
 
 ### What does Buddy store?
 
-Local companion state in `~/.buddy/buddy.db` — species, level, XP, mood, personality bio, and memories. If insight mode is on, buddy also stores extracted claim snippets (≤240 chars each, plaintext) for structural reasoning analysis, pruned after 30 days and purgeable via `buddy_forget`. Nothing leaves your machine.
+Local companion state in `~/.buddy/buddy.db` — species, level, XP, mood, personality bio, and memories. If guard mode is on, buddy also stores extracted claim snippets (≤240 chars each, plaintext) for structural reasoning analysis, pruned after 30 days and purgeable via `buddy_forget`. Nothing leaves your machine.
 
 ### Is Buddy tied to one client?
 
@@ -762,7 +762,7 @@ Special thanks to [@gupta3681](https://github.com/gupta3681), [@kevinwei00](http
 
 - Original buddy concept by [Anthropic](https://www.anthropic.com/) in [Claude Code](https://github.com/anthropics/claude-code) `v2.1.89` to `v2.1.96`
 - Inspired by [effigy](https://github.com/justinstimatze/effigy), [claude-buddy](https://github.com/1270011/claude-buddy), and [save-buddy](https://github.com/jrykn/save-buddy).
-- Insight mode is a port of [slimemold](https://github.com/justinstimatze/slimemold) by [@justinstimatze](https://github.com/justinstimatze) (Apache-2.0). Contributed to buddy under MIT. The standalone project has the full system with conditional gates and evaluation against reasoning benchmarks; buddy ships the foundational six detectors.
+- Guard mode is a port of [slimemold](https://github.com/justinstimatze/slimemold) by [@justinstimatze](https://github.com/justinstimatze) (Apache-2.0). Contributed to buddy under MIT. The standalone project has the full system with conditional gates and evaluation against reasoning benchmarks; buddy ships the foundational six detectors.
 - Built with the [Model Context Protocol](https://modelcontextprotocol.io/)
 - Compatible with [claude-hud](https://github.com/jarrodwatts/claude-hud) by [@jarrodwatts](https://github.com/jarrodwatts) — Buddy's statusline renders side-by-side with HUD metrics
 - [BonziClaude](https://github.com/zakarth/BonziClaude) by [@zakarth](https://github.com/zakarth) is an important technical reference point in the ecosystem, especially around reverse-engineering and documenting companion-system behavior.
