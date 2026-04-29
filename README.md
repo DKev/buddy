@@ -126,7 +126,7 @@ The installer will guide you through onboarding:
 
 ## 🛡️ Guard Mode
 
-> *AI and human can both suffer from insufficient thinking — and act on foregone conclusions. Guard mode catches it.*
+> *AI and human both suffer from insufficient thinking — acting on premature conclusions and assumptions without validation. Guard mode catches it.*
 
 Your AI assistant is a yes-man. It agrees with everything you say. But here's the thing: you do the same thing back. You accept what the model says because it sounds right. Both sides skip the hard questions, and the session gets faster without getting truer. That's how bad assumptions become load-bearing walls — nobody stops to check the foundation.
 
