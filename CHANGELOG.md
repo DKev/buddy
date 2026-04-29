@@ -2,7 +2,7 @@
 
 All notable changes to this project will follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased] — targeting 1.0.6
+## [1.0.6] - 2026-04-29
 
 ### Added
 - **Non-Claude host hook auto-configuration** (PR #96): The installer now wires up Buddy's post-tool hook on Codex CLI, Cursor, and GitHub Copilot CLI automatically when those tools are detected — no manual config needed.
@@ -22,10 +22,10 @@ All notable changes to this project will follow [Semantic Versioning](https://se
 - **"Insight mode" renamed to "guard mode"** — `buddy_mode guard=true` is the new primary parameter. Both `insight` and `max` are accepted as deprecated aliases with a deprecation note in responses. The DB column is automatically renamed (`max_mode` → `insight_mode` → `guard_mode`) on first startup, preserving the user's existing setting. The `buddy_observe` JSON response emits both `guardMode` and `insightMode` fields during the transition period.
 - **"Dark" and "bright" nudges renamed** to **"caution"** and **"kudos"** nudges — clearer labels for the two finding categories. Finding type values (`load_bearing_vibes`, etc.) are unchanged.
 - **Penguin demo animation refreshed**: The Buddy penguin sprite now uses a more expressive side-to-side dance loop with compact mirrored accent poses, and `demo/sprites/penguin.gif` has been regenerated to match the updated motion.
-- Version bumped to **1.0.7**.
+- Version bumped to **1.0.6**.
 
 ### Upgrade notes
-Re-run the installer to get 1.0.7:
+Re-run the installer to get 1.0.6:
 ```bash
 # macOS/Linux
 curl -fsSL https://raw.githubusercontent.com/fiorastudio/buddy/master/install.sh | bash
@@ -35,10 +35,10 @@ irm https://raw.githubusercontent.com/fiorastudio/buddy/master/install.ps1 | iex
 ```
 
 **Existing users — what you need to know:**
-- **Database**: The `max_mode` column is automatically renamed to `insight_mode` on first startup. No manual migration needed.
-- **`buddy_mode max=true` still works**: The `max` parameter is accepted as a deprecated alias for `insight`. You'll see a deprecation note in the response suggesting you switch to `buddy_mode insight=true`.
-- **Stored data is unaffected**: Finding type IDs (`load_bearing_vibes`, `echo_chamber`, etc.) and all claim/edge data in `buddy.db` are unchanged. The "caution"/"kudos" labels are display-only — nothing in the database references "dark" or "bright".
-- **No action required**: Just upgrade and everything works. Update `max` → `insight` in your CLAUDE.md or scripts at your convenience.
+- **Database migrates automatically**: On first startup, the DB column is renamed to `guard_mode` regardless of your starting point (`max_mode` → `guard_mode` or `insight_mode` → `guard_mode`). Your existing on/off setting is preserved. No manual migration needed.
+- **Old parameters still work**: `buddy_mode max=true` and `buddy_mode insight=true` are both accepted as deprecated aliases. You'll see a deprecation note suggesting you switch to `buddy_mode guard=true`.
+- **Stored data is unaffected**: Finding type IDs (`load_bearing_vibes`, `echo_chamber`, etc.) and all claim/edge data in `buddy.db` are unchanged. The "caution"/"kudos" labels are display-only.
+- **No action required**: Just re-run the one-liner installer and everything works. Update `max` or `insight` → `guard` in your CLAUDE.md or scripts at your convenience.
 
 ### Fixed
 - Gemini CLI prompt injection no longer creates `~/.gemini/GEMINI.md` on machines that don't have Gemini installed.
