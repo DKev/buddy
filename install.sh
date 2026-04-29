@@ -50,6 +50,8 @@ fi
 if [ -d "$INSTALL_DIR" ]; then
   echo "  Updating existing installation..."
   cd "$INSTALL_DIR"
+  # Reset generated files that block git pull (e.g. package-lock.json modified by npm install)
+  git checkout -- package-lock.json 2>/dev/null
   git pull origin master --quiet
 else
   echo "  Cloning Buddy MCP Server..."

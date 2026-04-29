@@ -36,6 +36,8 @@ catch {
 if (Test-Path $INSTALL_DIR) {
   Write-Host "  Updating existing installation..."
   Push-Location $INSTALL_DIR
+  # Reset generated files that block git pull (e.g. package-lock.json modified by npm install)
+  git checkout -- package-lock.json 2>$null
   git pull origin master --quiet
   Pop-Location
 } else {
@@ -97,6 +99,10 @@ function Add-BuddyToConfig($configPath, $cliName) {
 
 $HOOK_PATH = "$INSTALL_DIR\dist\hooks\post-tool-handler.js"
 $HOOK_PATH_UNIX = $HOOK_PATH -replace '\\', '/'
+$STOP_HOOK_PATH = "$INSTALL_DIR\dist\hooks\stop-handler.js"
+$STOP_HOOK_PATH_UNIX = $STOP_HOOK_PATH -replace '\\', '/'
+$PROMPT_HOOK_PATH = "$INSTALL_DIR\dist\hooks\prompt-handler.js"
+$PROMPT_HOOK_PATH_UNIX = $PROMPT_HOOK_PATH -replace '\\', '/'
 
 Write-Host ""
 Write-Host "  Configuring MCP clients..."
@@ -142,68 +148,119 @@ if (-not $claudeRegistered) {
 }
 $CLAUDE_CONFIGURED = $true
 
+# Configure hooks + statusline in settings.json via node (avoids PowerShell
+# ConvertFrom-Json flattening single-element arrays into bare objects).
 $claudeSettings = "$claudeDir\settings.json"
 if (!(Test-Path $claudeSettings)) {
   '{}' | Set-Content $claudeSettings -Encoding UTF8
 }
 
-$hookConfigured = $false
-$statuslineConfigured = $false
 $statuslineCommand = "node $STATUSLINE_PATH_UNIX"
-try {
-  $config = Get-Content $claudeSettings -Raw | ConvertFrom-Json
-} catch {
-  $config = @{}
+$env:CLAUDE_SETTINGS = $claudeSettings
+$env:HOOK_COMMAND = "node $HOOK_PATH_UNIX"
+$env:STOP_HOOK_COMMAND = "node $STOP_HOOK_PATH_UNIX"
+$env:PROMPT_HOOK_COMMAND = "node $PROMPT_HOOK_PATH_UNIX"
+$env:STATUSLINE_COMMAND = $statuslineCommand
+$settingsResult = node -e @'
+const fs = require('fs');
+const settingsPath = process.env.CLAUDE_SETTINGS;
+const hookCommand = process.env.HOOK_COMMAND;
+const stopHookCommand = process.env.STOP_HOOK_COMMAND;
+const promptHookCommand = process.env.PROMPT_HOOK_COMMAND;
+const statuslineCommand = process.env.STATUSLINE_COMMAND;
+let config = {};
+try { config = JSON.parse(fs.readFileSync(settingsPath, 'utf-8')); } catch {}
+let changed = false;
+const result = [];
+
+if (!config.hooks) config.hooks = {};
+
+// PostToolUse — error detection (Bash only)
+if (!Array.isArray(config.hooks.PostToolUse)) config.hooks.PostToolUse = [];
+const hasPostHook = config.hooks.PostToolUse.some(entry =>
+  entry.matcher === 'Bash' &&
+  Array.isArray(entry.hooks) &&
+  entry.hooks.some(h => h.command === hookCommand)
+);
+if (!hasPostHook) {
+  config.hooks.PostToolUse.push({
+    matcher: 'Bash',
+    hooks: [{ type: 'command', command: hookCommand, async: true, timeout: 3 }]
+  });
+  changed = true;
+  result.push('hook:updated');
+} else {
+  result.push('hook:noop');
 }
-if (!$config.hooks) {
-  $config | Add-Member -NotePropertyName "hooks" -NotePropertyValue @{} -Force
+
+// Stop — task-completion reactions
+if (!Array.isArray(config.hooks.Stop)) config.hooks.Stop = [];
+const hasStopHook = config.hooks.Stop.some(entry =>
+  Array.isArray(entry.hooks) &&
+  entry.hooks.some(h => h.command === stopHookCommand)
+);
+if (!hasStopHook) {
+  config.hooks.Stop.push({
+    hooks: [{ type: 'command', command: stopHookCommand, async: true, timeout: 5 }]
+  });
+  changed = true;
+  result.push('stop:updated');
+} else {
+  result.push('stop:noop');
 }
-$hooks = $config.hooks
-if (!$hooks.PostToolUse) {
-  $hooks | Add-Member -NotePropertyName "PostToolUse" -NotePropertyValue @() -Force
+
+// UserPromptSubmit — name + mood reactions
+if (!Array.isArray(config.hooks.UserPromptSubmit)) config.hooks.UserPromptSubmit = [];
+const hasPromptHook = config.hooks.UserPromptSubmit.some(entry =>
+  Array.isArray(entry.hooks) &&
+  entry.hooks.some(h => h.command === promptHookCommand)
+);
+if (!hasPromptHook) {
+  config.hooks.UserPromptSubmit.push({
+    hooks: [{ type: 'command', command: promptHookCommand, async: true, timeout: 3 }]
+  });
+  changed = true;
+  result.push('prompt:updated');
+} else {
+  result.push('prompt:noop');
 }
-$hasBuddyHook = $false
-foreach ($entry in @($hooks.PostToolUse)) {
-  if ($entry.matcher -eq 'Bash' -and $entry.hooks) {
-    foreach ($hk in $entry.hooks) {
-      if ($hk.command -and $hk.command -like "*post-tool-handler*") {
-        $hasBuddyHook = $true
-      }
-    }
-  }
+
+// Statusline
+const needsStatusline = !config.statusLine ||
+  config.statusLine.type !== 'command' ||
+  config.statusLine.command !== statuslineCommand ||
+  config.statusLine.refreshInterval !== 2;
+if (needsStatusline) {
+  config.statusLine = { type: 'command', command: statuslineCommand, padding: 1, refreshInterval: 2 };
+  changed = true;
+  result.push('statusline:updated');
+} else {
+  result.push('statusline:noop');
 }
-if (-not $hasBuddyHook) {
-  $hookEntry = @{
-    matcher = "Bash"
-    hooks = @(@{
-      type = "command"
-      command = "node $HOOK_PATH_UNIX"
-      async = $true
-      timeout = 3
-    })
-  }
-  $hooks.PostToolUse = @($hooks.PostToolUse) + @($hookEntry)
-  $hookConfigured = $true
+
+if (changed) {
+  fs.writeFileSync(settingsPath, JSON.stringify(config, null, 2));
 }
-if ((-not $config.statusLine) -or $config.statusLine.command -ne $statuslineCommand -or $config.statusLine.type -ne 'command' -or $config.statusLine.refreshInterval -ne 2) {
-  $config | Add-Member -NotePropertyName "statusLine" -NotePropertyValue ([ordered]@{
-    type = "command"
-    command = $statuslineCommand
-    padding = 1
-    refreshInterval = 2
-  }) -Force
-  $statuslineConfigured = $true
-}
-if ($hookConfigured -or $statuslineConfigured) {
-  $config | ConvertTo-Json -Depth 8 | Set-Content $claudeSettings -Encoding UTF8
-}
-if ($hookConfigured) {
+process.stdout.write(result.join(','));
+'@ 2>$null
+
+if ($settingsResult -match 'hook:updated') {
   Write-Host "  ✓ PostToolUse hook configured" -ForegroundColor Green
 } else {
   Write-Host "  ✓ PostToolUse hook already configured" -ForegroundColor Green
 }
-if ($statuslineConfigured) {
-  Write-Host "  ✓ Claude Code statusline configured ($statuslineCommand)" -ForegroundColor Green
+if ($settingsResult -match 'stop:updated') {
+  Write-Host "  ✓ Stop hook configured" -ForegroundColor Green
+} else {
+  Write-Host "  ✓ Stop hook already configured" -ForegroundColor Green
+}
+if ($settingsResult -match 'prompt:updated') {
+  Write-Host "  ✓ UserPromptSubmit hook configured" -ForegroundColor Green
+} else {
+  Write-Host "  ✓ UserPromptSubmit hook already configured" -ForegroundColor Green
+}
+if ($settingsResult -match 'statusline:updated') {
+  Write-Host "  ✓ Claude Code statusline configured" -ForegroundColor Green
 } else {
   Write-Host "  ✓ Claude Code statusline already configured" -ForegroundColor Green
 }
@@ -215,29 +272,30 @@ if (Test-Path "$env:USERPROFILE\.cursor") {
 
 $cursorHooks = "$env:USERPROFILE\.cursor\hooks.json"
 if (Test-Path "$env:USERPROFILE\.cursor") {
-  $cursorConfig = @{}
-  if (Test-Path $cursorHooks) {
-    try { $cursorConfig = Get-Content $cursorHooks -Raw | ConvertFrom-Json }
-    catch { $cursorConfig = @{} }
-  }
-  if (!$cursorConfig.version) {
-    $cursorConfig | Add-Member -NotePropertyName "version" -NotePropertyValue 1 -Force
-  }
-  if (!$cursorConfig.hooks) {
-    $cursorConfig | Add-Member -NotePropertyName "hooks" -NotePropertyValue @{} -Force
-  }
-  if (!$cursorConfig.hooks.afterShellExecution) {
-    $cursorConfig.hooks | Add-Member -NotePropertyName "afterShellExecution" -NotePropertyValue @() -Force
-  }
-  $hasCursorHook = $false
-  foreach ($entry in @($cursorConfig.hooks.afterShellExecution)) {
-    if ($entry.command -eq "node $HOOK_PATH_UNIX") {
-      $hasCursorHook = $true
-    }
-  }
-  if (-not $hasCursorHook) {
-    $cursorConfig.hooks.afterShellExecution = @($cursorConfig.hooks.afterShellExecution) + @(@{ command = "node $HOOK_PATH_UNIX" })
-    $cursorConfig | ConvertTo-Json -Depth 8 | Set-Content $cursorHooks -Encoding UTF8
+  $env:CURSOR_HOOKS_FILE = $cursorHooks
+  $env:HOOK_COMMAND = "node $HOOK_PATH_UNIX"
+  $cursorResult = node -e @'
+const fs = require('fs');
+const path = process.env.CURSOR_HOOKS_FILE;
+const hookCommand = process.env.HOOK_COMMAND;
+let config = {};
+try { config = JSON.parse(fs.readFileSync(path, 'utf-8')); } catch {}
+if (!config.version) config.version = 1;
+if (!config.hooks || typeof config.hooks !== 'object') config.hooks = {};
+if (!Array.isArray(config.hooks.afterShellExecution)) config.hooks.afterShellExecution = [];
+const hooks = config.hooks.afterShellExecution;
+const hasHook = hooks.some(h => typeof h?.command === 'string' && h.command === hookCommand);
+if (!hasHook) {
+  hooks.push({ command: hookCommand });
+  fs.mkdirSync(require('path').dirname(path), { recursive: true });
+  fs.writeFileSync(path, JSON.stringify(config, null, 2));
+  process.stdout.write('updated');
+} else {
+  process.stdout.write('noop');
+}
+'@ 2>$null
+
+  if ($cursorResult -eq 'updated') {
     Write-Host "  ✓ Cursor CLI afterShellExecution hook configured ($cursorHooks)" -ForegroundColor Green
   } else {
     Write-Host "  ✓ Cursor CLI afterShellExecution hook already configured" -ForegroundColor Green
@@ -250,31 +308,37 @@ if (Test-Path "$env:USERPROFILE\.copilot") {
 
   if ($COPILOT_CONFIGURED) {
     $copilotSettings = "$env:USERPROFILE\.copilot\settings.json"
-    $copilotConfig = @{}
-    if (Test-Path $copilotSettings) {
-      try { $copilotConfig = Get-Content $copilotSettings -Raw | ConvertFrom-Json }
-      catch { $copilotConfig = @{} }
-    }
-    if (!$copilotConfig.hooks) {
-      $copilotConfig | Add-Member -NotePropertyName "hooks" -NotePropertyValue @{} -Force
-    }
-    if (!$copilotConfig.hooks.postToolUse) {
-      $copilotConfig.hooks | Add-Member -NotePropertyName "postToolUse" -NotePropertyValue @() -Force
-    }
-    $hasCopilotHook = $false
-    foreach ($entry in @($copilotConfig.hooks.postToolUse)) {
-      if ($entry.bash -eq "node $HOOK_PATH_UNIX" -or $entry.powershell -eq "node $HOOK_PATH_UNIX") {
-        $hasCopilotHook = $true
-      }
-    }
-    if (-not $hasCopilotHook) {
-      $copilotConfig.hooks.postToolUse = @($copilotConfig.hooks.postToolUse) + @(@{
-        type = "command"
-        bash = "node $HOOK_PATH_UNIX"
-        powershell = "node $HOOK_PATH_UNIX"
-        timeoutSec = 3
-      })
-      $copilotConfig | ConvertTo-Json -Depth 8 | Set-Content $copilotSettings -Encoding UTF8
+    $env:COPILOT_SETTINGS = $copilotSettings
+    $env:BASH_COMMAND = "node $HOOK_PATH_UNIX"
+    $env:POWERSHELL_COMMAND = "node $HOOK_PATH_UNIX"
+    $copilotResult = node -e @'
+const fs = require('fs');
+const path = require('path');
+const settingsPath = process.env.COPILOT_SETTINGS;
+const bashCommand = process.env.BASH_COMMAND;
+const powershellCommand = process.env.POWERSHELL_COMMAND;
+let config = {};
+try { config = JSON.parse(fs.readFileSync(settingsPath, 'utf-8')); } catch {}
+if (!config.hooks || typeof config.hooks !== 'object') config.hooks = {};
+if (!Array.isArray(config.hooks.postToolUse)) config.hooks.postToolUse = [];
+const hooks = config.hooks.postToolUse;
+const hasHook = hooks.some(h => h?.bash === bashCommand || h?.powershell === powershellCommand);
+if (!hasHook) {
+  hooks.push({
+    type: 'command',
+    bash: bashCommand,
+    powershell: powershellCommand,
+    timeoutSec: 3,
+  });
+  fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+  fs.writeFileSync(settingsPath, JSON.stringify(config, null, 2));
+  process.stdout.write('updated');
+} else {
+  process.stdout.write('noop');
+}
+'@ 2>$null
+
+    if ($copilotResult -eq 'updated') {
       Write-Host "  ✓ GitHub Copilot CLI postToolUse hook configured ($copilotSettings)" -ForegroundColor Green
     } else {
       Write-Host "  ✓ GitHub Copilot CLI postToolUse hook already configured" -ForegroundColor Green
@@ -299,45 +363,39 @@ if (Get-Command codex -ErrorAction SilentlyContinue) {
 
   if ($CODEX_CONFIGURED) {
     $codexHooks = "$env:USERPROFILE\.codex\hooks.json"
-    $codexConfig = @{}
-    if (Test-Path $codexHooks) {
-      try { $codexConfig = Get-Content $codexHooks -Raw | ConvertFrom-Json }
-      catch { $codexConfig = @{} }
-    }
-    if (!$codexConfig.hooks) {
-      $codexConfig | Add-Member -NotePropertyName "hooks" -NotePropertyValue @{} -Force
-    }
-    if (!$codexConfig.hooks.PostToolUse) {
-      $codexConfig.hooks | Add-Member -NotePropertyName "PostToolUse" -NotePropertyValue @() -Force
-    }
-    $postToolUseGroups = @($codexConfig.hooks.PostToolUse)
-    $codexGroup = $null
-    foreach ($entry in $postToolUseGroups) {
-      if ($entry.matcher -eq 'Bash' -and $entry.hooks) {
-        $codexGroup = $entry
-        break
-      }
-    }
-    if (-not $codexGroup) {
-      $codexGroup = [ordered]@{
-        matcher = "Bash"
-        hooks = @()
-      }
-      $codexConfig.hooks.PostToolUse = @($postToolUseGroups) + @($codexGroup)
-    }
-    $hasCodexHook = $false
-    foreach ($entry in @($codexGroup.hooks)) {
-      if ($entry.command -eq "node $HOOK_PATH_UNIX") {
-        $hasCodexHook = $true
-      }
-    }
-    if (-not $hasCodexHook) {
-      $codexGroup.hooks = @($codexGroup.hooks) + @(@{
-        type = "command"
-        command = "node $HOOK_PATH_UNIX"
-        statusMessage = "Reviewing Bash output"
-      })
-      $codexConfig | ConvertTo-Json -Depth 10 | Set-Content $codexHooks -Encoding UTF8
+    $env:CODEX_HOOKS_FILE = $codexHooks
+    $env:HOOK_COMMAND = "node $HOOK_PATH_UNIX"
+    $codexResult = node -e @'
+const fs = require('fs');
+const path = require('path');
+const hooksPath = process.env.CODEX_HOOKS_FILE;
+const hookCommand = process.env.HOOK_COMMAND;
+let config = {};
+try { config = JSON.parse(fs.readFileSync(hooksPath, 'utf-8')); } catch {}
+if (!config.hooks || typeof config.hooks !== 'object') config.hooks = {};
+if (!Array.isArray(config.hooks.PostToolUse)) config.hooks.PostToolUse = [];
+const groups = config.hooks.PostToolUse;
+let group = groups.find(entry => entry?.matcher === 'Bash' && Array.isArray(entry?.hooks));
+if (!group) {
+  group = { matcher: 'Bash', hooks: [] };
+  groups.push(group);
+}
+const hasHook = group.hooks.some(h => typeof h?.command === 'string' && h.command === hookCommand);
+if (!hasHook) {
+  group.hooks.push({
+    type: 'command',
+    command: hookCommand,
+    statusMessage: 'Reviewing Bash output',
+  });
+  fs.mkdirSync(path.dirname(hooksPath), { recursive: true });
+  fs.writeFileSync(hooksPath, JSON.stringify(config, null, 2));
+  process.stdout.write('updated');
+} else {
+  process.stdout.write('noop');
+}
+'@ 2>$null
+
+    if ($codexResult -eq 'updated') {
       Write-Host "  ✓ Codex CLI PostToolUse hook configured ($codexHooks)" -ForegroundColor Green
     } else {
       Write-Host "  ✓ Codex CLI PostToolUse hook already configured" -ForegroundColor Green
