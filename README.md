@@ -159,15 +159,13 @@ Mix and match — any voice works with Guard on or off.
 <summary><strong>🧠 &nbsp; The 6 patterns guard mode catches</strong></summary>
 <br>
 
-Imagine you're building a Lego castle with a friend. Your friend says "we should make the tower tall because tall towers look cool." You say "yeah totally" and start building it tall. Then you put a heavy dragon on top and... it falls over. Nobody stopped to ask "wait, can the base actually hold a tall tower with a dragon?"
-
-That's what guard mode catches. It watches your coding conversation and spots 6 patterns — 3 caution (something's off) and 3 kudos (something's solid). Each caution has a matching kudos counterpart:
+Guard mode watches your coding conversation and spots 6 patterns — 3 caution (something's off) and 3 kudos (something's solid). Each caution has a matching kudos counterpart:
 
 | | ⚠️ Caution Nudge | ✅ Kudos Nudge |
 |---|---|---|
-| **Foundation** | **Load-Bearing Vibes** 🧱 — You're building on an unchecked guess. 3+ things depend on an assumption nobody validated. "This API probably returns JSON" → 5 things built on top → nobody checked. | **Well-Sourced Load Bearer** ✅ — Same structure, but the foundation is cited, tested, or measured. Buddy celebrates solid ground because good foundations deserve recognition. |
-| **Chain** | **Unchallenged Chain** 🔗 — 4+ reasoning steps with zero pushback. A → B → C → D and nobody questioned any step. The longer the chain without a check, the more likely something's off. | **Productive Stress Test** 💪 — A chain that got challenged mid-way and survived. The idea is *stronger* because it was questioned and held up. |
-| **Agreement** | **Echo Chamber** 🪞 — You and the AI keep agreeing without exploring alternatives or tradeoffs. "Let's use Redis." / "Great idea!" / "Redis is fast." / "Absolutely!" — mutual reinforcement, zero scrutiny. | **Grounded Premise Adopted** 🌱 — A real fact (docs, test result, measurement) became the base for other decisions. Evidence-first engineering instead of vibes-first. |
+| **Foundation** | **Load-Bearing Vibes** 🧱 — You're building on an unchecked guess. 3+ things depend on an assumption nobody validated. Like building your whole Lego castle on a wobbly plate and hoping it holds. | **Well-Sourced Load Bearer** ✅ — Same structure, but the foundation is cited, tested, or measured. You checked the plate before building on it. Buddy celebrates solid ground. |
+| **Chain** | **Unchallenged Chain** 🔗 — 4+ reasoning steps with zero pushback. A → B → C → D and nobody questioned any step. Like following a chain of "because" without ever stopping to ask "wait, is that actually true?" | **Productive Stress Test** 💪 — A chain that got challenged mid-way and survived. Like shaking the Lego tower — if it survives, you trust it more. The idea is *stronger* because it was questioned. |
+| **Agreement** | **Echo Chamber** 🪞 — You and the AI keep agreeing without exploring alternatives. "Let's use Redis." / "Great idea!" / "Redis is fast." / "Absolutely!" You're both just high-fiving in a mirror. | **Grounded Premise Adopted** 🌱 — Instead of vibes, you started with a real fact (docs, test result, measurement) and it became the base for other decisions. Evidence-first, not echo-first. |
 
 ### What it feels like in practice
 
