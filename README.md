@@ -77,7 +77,7 @@ Buddy isn't just code — it's a rescue mission. Here is the full journey of the
 
 ## 🐾 Why Buddy
 
-- **Guard Mode is the wedge.** Your AI assistant is a yes-man. Buddy catches the moments where you and the model are building quickly on top of bad assumptions.
+- **Guard Mode is the wedge.** AI and human both suffer from insufficient thinking. Your assistant is a yes-man, and you accept its output because it sounds right. Buddy catches the moments where both sides are building on bad assumptions and nobody's checking.
 - **Persistent by default.** Your companion lives in local SQLite, so it survives terminal restarts and client updates.
 - **Works across clients and chat surfaces.** Buddy is an MCP server, not a one-client hack, and it can ride through tools like OpenClaw into WhatsApp and Telegram workflows.
 - **Grows with you.** Hatch species, gain XP as you code, store memories, chime in after tasks, and build a running relationship over time.
@@ -126,15 +126,17 @@ The installer will guide you through onboarding:
 
 ## 🛡️ Guard Mode
 
-> *Your AI assistant is a yes-man. Guard mode catches it.*
+> *AI and human can both suffer from insufficient thinking — and act on foregone conclusions. Guard mode is the wedge.*
 
-AI coding assistants are yes-men. They agree with everything you say. Guard mode is the one feature that pushes back — but gently, and in your buddy's voice, not a scary linter. It catches the moments where you and your AI are vibing too hard and nobody's checking if the code actually makes sense.
+Your AI assistant is a yes-man. It agrees with everything you say. But here's the thing: you do the same thing back. You accept what the model says because it sounds right. Both sides skip the hard questions, and the session gets faster without getting truer. That's how bad assumptions become load-bearing walls — nobody stops to check the foundation.
 
-Think of it as: **Buddy is the friend who says "are you sure about that?" before you push to production at 2 AM.**
+Guard mode catches those moments. It watches the reasoning structure of your conversation and surfaces the one thing worth questioning — but gently, in your buddy's voice, not a scary linter. Think of it as: **the friend who says "are you sure about that?" before you push to production at 2 AM.**
 
 ### The story
 
-This mode exists because of a real stuck-loop problem. While building a Snowflake Cortex / Streamlit / Plotly workflow, the session got trapped for hours in a bad assumption loop: the AI kept building on top of an unvalidated premise, and the work got faster without getting truer. Turning on guard mode surfaced the one load-bearing assumption holding the whole session together. Validating that single point changed the direction of the conversation and got the work shipping again.
+This mode exists because of a real stuck-loop problem. While building a Snowflake Cortex / Streamlit / Plotly workflow, the session got trapped for hours: the AI kept building on top of an unvalidated premise, and the human kept approving it because the output looked plausible. The work got faster. It didn't get truer. Both sides were reasoning insufficiently — the model because it's a yes-man, the human because velocity felt like progress.
+
+Turning on guard mode surfaced the one load-bearing assumption holding the whole session together. Validating that single point changed the direction of the conversation and got the work shipping again.
 
 ### Voice vs Guard
 
@@ -304,22 +306,24 @@ The installer:
 <td align="center"><img src="demo/sprites/log-golem.gif" width="120" alt="Log Golem"><br><b>Log Golem</b></td>
 <td align="center"><img src="demo/sprites/cache-crow.gif" width="120" alt="Cache Crow"><br><b>Cache Crow</b></td>
 <td align="center"><img src="demo/sprites/shell-turtle.gif" width="120" alt="Shell Turtle"><br><b>Shell Turtle</b></td>
-<td align="center"><img src="demo/sprites/duck.gif" width="120" alt="Duck"><br><b>Duck</b></td>
 </tr>
 <tr>
+<td align="center"><img src="demo/sprites/duck.gif" width="120" alt="Duck"><br><b>Duck</b></td>
 <td align="center"><img src="demo/sprites/goose.gif" width="120" alt="Goose"><br><b>Goose</b></td>
 <td align="center"><img src="demo/sprites/blob.gif" width="120" alt="Blob"><br><b>Blob</b></td>
 <td align="center"><img src="demo/sprites/octopus.gif" width="120" alt="Octopus"><br><b>Octopus</b></td>
 <td align="center"><img src="demo/sprites/owl.gif" width="120" alt="Owl"><br><b>Owl</b></td>
 <td align="center"><img src="demo/sprites/penguin.gif" width="120" alt="Penguin"><br><b>Penguin</b></td>
-<td align="center"><img src="demo/sprites/snail.gif" width="120" alt="Snail"><br><b>Snail</b></td>
-<td align="center"><img src="demo/sprites/ghost.gif" width="120" alt="Ghost"><br><b>Ghost</b></td>
 </tr>
 <tr>
+<td align="center"><img src="demo/sprites/snail.gif" width="120" alt="Snail"><br><b>Snail</b></td>
+<td align="center"><img src="demo/sprites/ghost.gif" width="120" alt="Ghost"><br><b>Ghost</b></td>
 <td align="center"><img src="demo/sprites/axolotl.gif" width="120" alt="Axolotl"><br><b>Axolotl</b></td>
 <td align="center"><img src="demo/sprites/capybara.gif" width="120" alt="Capybara"><br><b>Capybara</b></td>
 <td align="center"><img src="demo/sprites/cactus.gif" width="120" alt="Cactus"><br><b>Cactus</b></td>
 <td align="center"><img src="demo/sprites/robot.gif" width="120" alt="Robot"><br><b>Robot</b></td>
+</tr>
+<tr>
 <td align="center"><img src="demo/sprites/rabbit.gif" width="120" alt="Rabbit"><br><b>Rabbit</b></td>
 <td align="center"><img src="demo/sprites/mushroom.gif" width="120" alt="Mushroom"><br><b>Mushroom</b></td>
 <td align="center"><img src="demo/sprites/chonk.gif" width="120" alt="Chonk"><br><b>Chonk</b></td>
