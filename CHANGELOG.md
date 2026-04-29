@@ -2,13 +2,6 @@
 
 All notable changes to this project will follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased] — targeting 1.0.8
-
-### Changed
-- **"Insight mode" renamed to "guard mode"** — `buddy_mode guard=true` replaces `buddy_mode insight=true`. The `insight` parameter is accepted as a deprecated alias (as is `max`). The DB column is automatically renamed on first startup. The `buddy_observe` JSON response emits both `guardMode` and `insightMode` fields during the transition period.
-
----
-
 ## [Unreleased] — targeting 1.0.7
 
 ### Added
@@ -26,7 +19,7 @@ All notable changes to this project will follow [Semantic Versioning](https://se
 - **Clearer post-install and onboarding copy**: Success message and skip text now say "open the AI chat in your client" instead of the ambiguous "say 'hatch a buddy'" phrasing that read like a shell command.
 
 ### Changed
-- **"Max mode" renamed to "insight mode"** — `buddy_mode insight=true` replaces `buddy_mode max=true`. The `max` parameter is still accepted as a deprecated alias.
+- **"Insight mode" renamed to "guard mode"** — `buddy_mode guard=true` is the new primary parameter. Both `insight` and `max` are accepted as deprecated aliases with a deprecation note in responses. The DB column is automatically renamed (`max_mode` → `insight_mode` → `guard_mode`) on first startup, preserving the user's existing setting. The `buddy_observe` JSON response emits both `guardMode` and `insightMode` fields during the transition period.
 - **"Dark" and "bright" nudges renamed** to **"caution"** and **"kudos"** nudges — clearer labels for the two finding categories. Finding type values (`load_bearing_vibes`, etc.) are unchanged.
 - **Penguin demo animation refreshed**: The Buddy penguin sprite now uses a more expressive side-to-side dance loop with compact mirrored accent poses, and `demo/sprites/penguin.gif` has been regenerated to match the updated motion.
 - Version bumped to **1.0.7**.
