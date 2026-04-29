@@ -77,7 +77,7 @@ Buddy isn't just code — it's a rescue mission. Here is the full journey of the
 
 ## 🐾 Why Buddy
 
-- **Guard Mode is the wedge.** AI and human both suffer from insufficient thinking. Your assistant is a yes-man, and you accept its output because it sounds right. Buddy catches the moments where both sides are building on bad assumptions and nobody's checking.
+- **Guard Mode catches what you both miss.** AI and human both suffer from insufficient thinking. Your assistant is a yes-man, and you accept its output because it sounds right. Buddy catches the moments where both sides are building on bad assumptions and nobody's checking.
 - **Persistent by default.** Your companion lives in local SQLite, so it survives terminal restarts and client updates.
 - **Works across clients and chat surfaces.** Buddy is an MCP server, not a one-client hack, and it can ride through tools like OpenClaw into WhatsApp and Telegram workflows.
 - **Grows with you.** Hatch species, gain XP as you code, store memories, chime in after tasks, and build a running relationship over time.
@@ -126,7 +126,7 @@ The installer will guide you through onboarding:
 
 ## 🛡️ Guard Mode
 
-> *AI and human can both suffer from insufficient thinking — and act on foregone conclusions. Guard mode is the wedge.*
+> *AI and human can both suffer from insufficient thinking — and act on foregone conclusions. Guard mode catches it.*
 
 Your AI assistant is a yes-man. It agrees with everything you say. But here's the thing: you do the same thing back. You accept what the model says because it sounds right. Both sides skip the hard questions, and the session gets faster without getting truer. That's how bad assumptions become load-bearing walls — nobody stops to check the foundation.
 
